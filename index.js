@@ -9,6 +9,7 @@ require("dotenv").config();
 
 const admin = require("firebase-admin");
 
+
 admin.initializeApp({
   credential: admin.credential.cert({
     type: process.env.TYPE,
@@ -23,6 +24,7 @@ admin.initializeApp({
     client_x509_cert_url: process.env.CLIENT_CERT_URL,
   }),
 });
+
 
 // --- Telegram Bot Setup ---
 const token = "7593576825:AAEUY32s8UobaUlSO7T7UPF8ZlOAQ72vYw4";
