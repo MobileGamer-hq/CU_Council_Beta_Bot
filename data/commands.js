@@ -3,14 +3,17 @@ const commands = [
   { command: "/help", description: "View available commands and features" },
   { command: "/view_info", description: "Check your registered information" },
   { command: "/update_info", description: "Update your profile information" },
-  { command: "/contact", description: "Send a message to school council" },
+  { command: "/contact", description: "Send a message to the Student Council (you can stay anonymous)" },
   { command: "/contacts", description: "Get contact details for school offices" },
-  { command: "/view_events", description: "See upcoming CU events" },
-  { command: "/announcements", description: "View latest announcements" },
-  { command: "/timetable", description: "View latest announcements" },
-  { command: "/view_events", description: "View latest announcements" },
-  { command: "/suggest", description: "View latest announcements" },
+  { command: "/events", description: "See upcoming CU events" },
+  { command: "/announcements", description: "View the latest updates from the Student Council" },
+  { command: "/timetable", description: "View your timetable for the semester" },
+  { command: "/suggest", description: "Send a suggestion or idea to the council" },
+  { command: "/faq", description: "Get answers to common questions" },
+  { command: "/poll", description: "Participate in ongoing polls or vote on issues" },
+  { command: "/fun", description: "Get daily quotes, fun facts, or trivia" },
 ];
+
 
 const adminCommands = [
   { command: "/users", description: "View total number of users" },

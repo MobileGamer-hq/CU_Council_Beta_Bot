@@ -3,10 +3,15 @@ const TelegramBot = require("node-telegram-bot-api");
 
 const path = require("path");
 const fs = require("fs");
-const {commands, adminCommands} = require("./data/commands");
+const { commands, adminCommands } = require("./data/commands");
 const { adminMessage } = require("./data/messages");
 const admin = require("./utilities/firebase"); // Import the firebase admin SDK
-const { getUserIds, addUser, getUser, addAdminByMatricNumber } = require("./utilities/database");
+const {
+  getUserIds,
+  addUser,
+  getUser,
+  addAdminByMatricNumber,
+} = require("./utilities/database");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -128,18 +133,27 @@ bot.on("message", async (msg) => {
         const snapshot = await admin.database().ref("admins").once("value");
         const adminList = snapshot.val() || {};
         const isAdmin = adminList[chatId];
-    
+
         // Check if the user is an admin and update the bot's commands accordingly
         if (isAdmin) {
           await bot.setMyCommands(adminCommands);
-          return bot.sendMessage(chatId, "🔐 Welcome Admin! You now have access to admin commands.");
+          return bot.sendMessage(
+            chatId,
+            "🔐 Welcome Admin! You now have access to admin commands."
+          );
         } else {
           await bot.setMyCommands(commands);
-          return bot.sendMessage(chatId, "👋 Use /help to explore what I can do.");
+          return bot.sendMessage(
+            chatId,
+            "👋 Use /help to explore what I can do."
+          );
         }
       } catch (err) {
         console.error("Failed to fetch admin list:", err);
-        return bot.sendMessage(chatId, "⚠️ An error occurred while checking your role.");
+        return bot.sendMessage(
+          chatId,
+          "⚠️ An error occurred while checking your role."
+        );
       }
 
       break;
@@ -255,22 +269,18 @@ Here are the commands you can use:
 
 📢 /announcements – View the latest updates from the Student Council  
 📅 /events – See upcoming school events and activities  
-🗳 /poll – Participate in ongoing polls or vote on issues  
 💡 /suggest – Share your suggestions or ideas  
 ❓ /faq – Get answers to common questions  
-✉️ /contact – Contact the Student Council (you can stay anonymous)  
-🎉 /fun – Get daily quotes, fun facts, or trivia  
+✉️ /contact – Send a message to the Student Council (you can stay anonymous)
 📚 /help – Show this help message again
 
 _Type a command to get started. We're here to help make your school experience better!_
 
 — *Covenant University Student Council*
-    `;
+`;
 
   bot.sendMessage(msg.chat.id, helpMessage, { parse_mode: "Markdown" });
 });
-
-
 
 const contactSessions = {}; // temp in-memory store for contact flow
 
@@ -343,19 +353,43 @@ bot.on("callback_query", async (query) => {
     }`;
   }
 
-  // Replace with actual admin group/chat ID
-  const ADMIN_CHAT_ID = "YOUR_ADMIN_CHAT_ID_HERE";
+  // Fetch all admins from the database
+  const adminSnapshot = await db.ref("admins").once("value");
+  const adminList = adminSnapshot.val() || {}; // Get the list of admins
 
-  await bot.sendMessage(ADMIN_CHAT_ID, finalMessage, {
-    parse_mode: "Markdown",
-  });
+  // Iterate over all admins and send the message
+  for (let adminId in adminList) {
+    const adminChatId = adminId; // In Firebase, adminId is the chat ID
 
+    // Send the message to the admin
+    await bot.sendMessage(adminChatId, finalMessage, {
+      parse_mode: "Markdown",
+    });
+  }
+
+  // Inform the user that the message has been sent
   await bot.sendMessage(chatId, "✅ Your message has been sent. Thank you!");
 
+  // Clear the session data
   delete contactSessions[userId];
 
   // Acknowledge the button press
   bot.answerCallbackQuery(query.id);
+});
+
+bot.onText(/\/faq/, (msg) => {
+  const chatId = msg.chat.id;
+
+  // Prepare the FAQ list for display
+  let faqMessage = "❓ *Frequently Asked Questions*\n\n";
+
+  faq.forEach((item, index) => {
+    faqMessage += `*Q${index + 1}:* ${item.question}\n`;
+    faqMessage += `*A:* ${item.answer}\n\n`;
+  });
+
+  // Send the FAQ list to the user
+  bot.sendMessage(chatId, faqMessage, { parse_mode: "Markdown" });
 });
 
 bot.onText(/\/contacts/, (msg) => {
@@ -509,16 +543,22 @@ bot.onText(/\/announcements/, async (msg) => {
 
   try {
     const db = admin.database();
-    const snapshot = await db.ref('announcements').orderByChild('timestamp').limitToLast(10).once('value');
+    const snapshot = await db
+      .ref("announcements")
+      .orderByChild("timestamp")
+      .limitToLast(10)
+      .once("value");
     const announcements = snapshot.val();
 
     if (announcements) {
       let announcementsText = "📢 *Latest Announcements:*\n\n";
-      Object.keys(announcements).reverse().forEach(key => {
-        const announcement = announcements[key];
-        announcementsText += `📅 ${announcement.date || "No Date"}\n`;
-        announcementsText += `${announcement.message || "No message"}\n\n`;
-      });
+      Object.keys(announcements)
+        .reverse()
+        .forEach((key) => {
+          const announcement = announcements[key];
+          announcementsText += `📅 ${announcement.date || "No Date"}\n`;
+          announcementsText += `${announcement.message || "No message"}\n\n`;
+        });
 
       bot.sendMessage(chatId, announcementsText, { parse_mode: "Markdown" });
     } else {
@@ -526,10 +566,12 @@ bot.onText(/\/announcements/, async (msg) => {
     }
   } catch (error) {
     console.error("Error fetching announcements:", error);
-    bot.sendMessage(chatId, "❌ Could not retrieve the announcements. Please try again later.");
+    bot.sendMessage(
+      chatId,
+      "❌ Could not retrieve the announcements. Please try again later."
+    );
   }
 });
-
 
 //Admin Commands
 //Done
@@ -554,12 +596,14 @@ bot.onText(/\/add_admin (\S+)/, async (msg, match) => {
   const addedUser = await addAdminByMatricNumber(matricNumber);
 
   if (addedUser) {
-    bot.sendMessage(chatId, `✅ Admin added successfully:\n\nName: ${addedUser.first_name} ${addedUser.last_name}\nMatric Number: ${addedUser.matric_number}`);
+    bot.sendMessage(
+      chatId,
+      `✅ Admin added successfully:\n\nName: ${addedUser.first_name} ${addedUser.last_name}\nMatric Number: ${addedUser.matric_number}`
+    );
   } else {
     bot.sendMessage(chatId, "⚠️ No user found with this matric number.");
   }
 });
-
 
 const adminStates = {}; // Track admin input state
 //Done
@@ -680,10 +724,10 @@ bot.onText(/\/update_contacts/, (msg) => {
   bot.sendMessage(msg.chat.id, "Welcome to Covenant University Telegram Bot");
 });
 
-//Done But needs to send to multiple users
-bot.onText(/\/create_poll/, (msg) => {
+bot.onText(/\/create_poll/, async (msg) => {
   const chatId = msg.chat.id;
 
+  // Send the initial prompt to the admin who issued the command
   bot.sendMessage(chatId, "What type of poll would you like to create?", {
     reply_markup: {
       inline_keyboard: [
@@ -697,6 +741,28 @@ bot.onText(/\/create_poll/, (msg) => {
       ],
     },
   });
+
+  // Fetch all users from the database
+  const db = admin.database();
+  const snapshot = await db.ref("users").once("value");
+  const users = snapshot.val() || {}; // Get all users
+
+  // Iterate over each user and send them a message about the poll
+  for (let userId in users) {
+    const userChatId = users[userId].chat_id; // Assuming user has chat_id stored in the database
+
+    // Send the poll to the user
+    await bot.sendMessage(
+      userChatId,
+      "A new poll is being created. Stay tuned for more details!"
+    );
+  }
+
+  // Optionally, send a confirmation to the admin about the broadcast
+  bot.sendMessage(
+    chatId,
+    "✅ The poll announcement has been sent to all users."
+  );
 });
 
 //Callback Query
