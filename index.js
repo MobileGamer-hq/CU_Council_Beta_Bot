@@ -23,8 +23,7 @@ const port = process.env.PORT || 3000;
 const url = 'https://cu-council-beta-bot.onrender.com/'; // or your ngrok HTTPS URL
 
 // Create bot instance, don't start polling
-const bot = new TelegramBot(token, { webHook: { port: port } });
-
+const bot = new TelegramBot(token);
 
 // Set the webhook
 bot.setWebHook(`${url}/bot${token}`);
