@@ -270,9 +270,7 @@ _Type a command to get started. We're here to help make your school experience b
   bot.sendMessage(msg.chat.id, helpMessage, { parse_mode: "Markdown" });
 });
 
-bot.onText(/\/events/, (msg) => {
-  bot.sendMessage(msg.chat.id, "Welcome to Covenant University Telegram Bot");
-});
+
 
 const contactSessions = {}; // temp in-memory store for contact flow
 
@@ -479,6 +477,59 @@ bot.onText(/\/view_events/, async (msg) => {
     bot.sendMessage(chatId, "❌ Couldn't load events. Please try again.");
   }
 });
+
+bot.onText(/\/events/, (msg) => {
+  const chatId = msg.chat.id;
+  const db = admin.database();
+
+  try {
+    const snapshot = await db.ref("events").once("value");
+    const events = snapshot.val();
+
+    if (!events) {
+      return bot.sendMessage(chatId, "📭 No events available at the moment.");
+    }
+
+    let message = "📅 *Upcoming Events:*\n\n";
+    Object.values(events).forEach((event, index) => {
+      message += `*${index + 1}. ${event.title}*\n📖 ${
+        event.description
+      }\n🗓 Date: ${event.date}\n\n`;
+    });
+
+    bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+  } catch (error) {
+    console.error("Error fetching events:", error);
+    bot.sendMessage(chatId, "❌ Couldn't load events. Please try again.");
+  }
+});
+
+bot.onText(/\/announcements/, async (msg) => {
+  const chatId = msg.chat.id;
+
+  try {
+    const db = admin.database();
+    const snapshot = await db.ref('announcements').orderByChild('timestamp').limitToLast(10).once('value');
+    const announcements = snapshot.val();
+
+    if (announcements) {
+      let announcementsText = "📢 *Latest Announcements:*\n\n";
+      Object.keys(announcements).reverse().forEach(key => {
+        const announcement = announcements[key];
+        announcementsText += `📅 ${announcement.date || "No Date"}\n`;
+        announcementsText += `${announcement.message || "No message"}\n\n`;
+      });
+
+      bot.sendMessage(chatId, announcementsText, { parse_mode: "Markdown" });
+    } else {
+      bot.sendMessage(chatId, "⚠️ No announcements found.");
+    }
+  } catch (error) {
+    console.error("Error fetching announcements:", error);
+    bot.sendMessage(chatId, "❌ Could not retrieve the announcements. Please try again later.");
+  }
+});
+
 
 //Admin Commands
 //Done

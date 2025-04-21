@@ -3,10 +3,13 @@ const commands = [
   { command: "/help", description: "View available commands and features" },
   { command: "/view_info", description: "Check your registered information" },
   { command: "/update_info", description: "Update your profile information" },
-  { command: "/contact", description: "Send a message to school management" },
+  { command: "/contact", description: "Send a message to school council" },
   { command: "/contacts", description: "Get contact details for school offices" },
   { command: "/view_events", description: "See upcoming CU events" },
   { command: "/announcements", description: "View latest announcements" },
+  { command: "/timetable", description: "View latest announcements" },
+  { command: "/view_events", description: "View latest announcements" },
+  { command: "/suggest", description: "View latest announcements" },
 ];
 
 const adminCommands = [
