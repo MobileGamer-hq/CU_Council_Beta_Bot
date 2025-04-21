@@ -20,7 +20,7 @@ require("dotenv").config();
 // --- Telegram Bot Setup ---
 const token = process.env.BOT_TOKEN;
 const port = process.env.PORT || 3000;
-const url = "https://cu-council-beta-bot.onrender.com/"; // or your ngrok HTTPS URL
+const url = "https://cu-council-beta-bot.onrender.com"; // or your ngrok HTTPS URL
 
 // Create bot instance, don't start polling
 const bot = new TelegramBot(token);
