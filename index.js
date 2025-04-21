@@ -215,6 +215,12 @@ bot.onText(/\/update_info/, (msg) => {
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id.toString();
+
+  // Check if the message contains text
+  if (!msg.text) {
+    return; // If no text, don't proceed
+  }
+
   const text = msg.text.trim();
 
   if (!userStates[userId]) return;
@@ -260,6 +266,7 @@ bot.on("message", async (msg) => {
   }
 });
 
+
 //Done
 bot.onText(/\/help/, (msg) => {
   const helpMessage = `
@@ -302,8 +309,8 @@ bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
 
-  // Ignore /contact command itself
-  if (msg.text.toLowerCase().startsWith("/contact")) return;
+  // Check if msg.text exists before using toLowerCase
+  if (msg.text && msg.text.toLowerCase().startsWith("/contact")) return;
 
   const session = contactSessions[userId];
 
@@ -327,6 +334,7 @@ bot.on("message", async (msg) => {
     );
   }
 });
+
 
 // Handle button press
 bot.on("callback_query", async (query) => {
