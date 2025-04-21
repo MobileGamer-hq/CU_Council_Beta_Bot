@@ -13,25 +13,28 @@ const {
 } = require("./utilities/database");
 
 const app = express();
-
+app.use(express.json());
 
 require("dotenv").config();
 
 // --- Telegram Bot Setup ---
 const token = process.env.BOT_TOKEN;
 const port = process.env.PORT || 3000;
-const url = 'https://cu-council-beta-bot.onrender.com/'; // or your ngrok HTTPS URL
+const url = "https://cu-council-beta-bot.onrender.com/"; // or your ngrok HTTPS URL
 
 // Create bot instance, don't start polling
 const bot = new TelegramBot(token);
 
-// Set the webhook
-bot.setWebHook(`${url}/bot${token}`);
-
-// This endpoint will receive updates
 app.post(`/bot${token}`, (req, res) => {
-  bot.processUpdate(req.body);
-  res.sendStatus(200);
+  console.log("Received update:", req.body);
+  try {
+    bot.processUpdate(req.body);
+
+    res.sendStatus(200); // Acknowledge the update
+  } catch (err) {
+    console.log(`Error: ${err}`);
+    res.send(err);
+  }
 });
 
 bot.onText(/\/echo (.+)/, (msg, match) => {
@@ -45,6 +48,7 @@ bot.onText(/\/echo (.+)/, (msg, match) => {
 const userStates = {}; // To keep track of user input progress
 const userTempData = {}; // To temporarily store user data
 
+//Done
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
 
@@ -60,6 +64,7 @@ bot.onText(/\/start/, (msg) => {
   userTempData[chatId] = {};
 });
 
+//Done
 bot.onText(/\/join/, (msg) => {
   const chatId = msg.chat.id;
 
@@ -75,6 +80,7 @@ bot.onText(/\/join/, (msg) => {
   userTempData[chatId] = {};
 });
 
+//For SignUp (Start and Join)
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
@@ -172,6 +178,7 @@ bot.on("message", async (msg) => {
   }
 });
 
+//Done
 bot.onText(/\/view_info/, async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id.toString();
@@ -205,6 +212,7 @@ bot.onText(/\/view_info/, async (msg) => {
   }
 });
 
+//Done
 bot.onText(/\/update_info/, (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id.toString();
@@ -224,6 +232,7 @@ bot.onText(/\/update_info/, (msg) => {
   userStates[userId] = { step: "choose_field" };
 });
 
+//For Update Info
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id.toString();
@@ -278,7 +287,6 @@ bot.on("message", async (msg) => {
   }
 });
 
-
 //Done
 bot.onText(/\/help/, (msg) => {
   const helpMessage = `
@@ -303,6 +311,7 @@ _Type a command to get started. We're here to help make your school experience b
 
 const contactSessions = {}; // temp in-memory store for contact flow
 
+//Done
 bot.onText(/\/contact/, async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
@@ -347,8 +356,7 @@ bot.on("message", async (msg) => {
   }
 });
 
-
-// Handle button press
+// Callback for contact
 bot.on("callback_query", async (query) => {
   const userId = query.from.id;
   const chatId = query.message.chat.id;
@@ -397,6 +405,8 @@ bot.on("callback_query", async (query) => {
   bot.answerCallbackQuery(query.id);
 });
 
+
+//Done
 bot.onText(/\/faq/, (msg) => {
   const chatId = msg.chat.id;
 
@@ -412,6 +422,7 @@ bot.onText(/\/faq/, (msg) => {
   bot.sendMessage(chatId, faqMessage, { parse_mode: "Markdown" });
 });
 
+//Done
 bot.onText(/\/contacts/, (msg) => {
   const contactInfo = `
 📬 *Covenant University Contact Directory*
@@ -476,6 +487,7 @@ bot.onText(/\/contacts/, (msg) => {
   bot.sendMessage(msg.chat.id, contactInfo, { parse_mode: "Markdown" });
 });
 
+//Not Done
 bot.onText(/\/suggest/, (msg) => {
   bot.sendMessage(msg.chat.id, "Welcome to Covenant University Telegram Bot");
 });
@@ -532,6 +544,7 @@ bot.onText(/\/view_events/, async (msg) => {
   }
 });
 
+//Done
 bot.onText(/\/events/, async (msg) => {
   const chatId = msg.chat.id;
   const db = admin.database();
@@ -558,6 +571,8 @@ bot.onText(/\/events/, async (msg) => {
   }
 });
 
+
+//Done
 bot.onText(/\/announcements/, async (msg) => {
   const chatId = msg.chat.id;
 
@@ -658,6 +673,7 @@ bot.onText(/\/add_admin (\S+)/, async (msg, match) => {
 });
 
 const adminStates = {}; // Track admin input state
+
 //Done
 bot.onText(/\/send_announcement/, (msg) => {
   const chatId = msg.chat.id;
@@ -671,6 +687,7 @@ bot.onText(/\/send_announcement/, (msg) => {
   adminStates[chatId] = "awaiting_announcement";
 });
 
+//For the send announcement command
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
@@ -702,6 +719,7 @@ bot.on("message", async (msg) => {
   }
 });
 
+//Not Done
 bot.onText(/\/add_user/, (msg) => {
   const opts = {
     reply_markup: {
@@ -718,6 +736,7 @@ bot.onText(/\/add_user/, (msg) => {
 
 const addEventSessions = {};
 
+//Done
 bot.onText(/\/add_event/, (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
@@ -732,6 +751,7 @@ bot.onText(/\/add_event/, (msg) => {
   );
 });
 
+//Event message
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
@@ -772,10 +792,12 @@ bot.on("message", async (msg) => {
   }
 });
 
+//Not Done
 bot.onText(/\/update_contacts/, (msg) => {
   bot.sendMessage(msg.chat.id, "Welcome to Covenant University Telegram Bot");
 });
 
+//Done
 bot.onText(/\/create_poll/, async (msg) => {
   const chatId = msg.chat.id;
 
@@ -877,6 +899,8 @@ bot.on("callback_query", (callbackQuery) => {
 
 // --- Express Server Setup ---
 app.get("/", (req, res) => {
+  // Set the webhook
+  bot.setWebHook(`${url}/bot${token}`);
   res.send("Council bot is running!");
 });
 
