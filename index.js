@@ -13,7 +13,7 @@ const port = process.env.PORT || 3000;
 require("dotenv").config();
 
 // --- Telegram Bot Setup ---
-const token = "7593576825:AAEUY32s8UobaUlSO7T7UPF8ZlOAQ72vYw4";
+const token = process.env.BOT_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
 
 bot.setMyCommands(commands);
@@ -26,34 +26,179 @@ bot.onText(/\/echo (.+)/, (msg, match) => {
 
 //User Commands
 //Done
-bot.onText(/\/start/, async (msg) => {
+const userStates = {}; // To keep track of user input progress
+const userTempData = {}; // To temporarily store user data
+
+bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
-  const user = msg.from;
 
-  const userData = {
-    first_name: user.first_name || "",
-    last_name: user.last_name || "",
-    username: user.username || "",
-    is_bot: user.is_bot || false,
-  };
+  bot.sendMessage(chatId, "👋 Hi! Let's get you registered.\n\nWhat is your *first name*?", {
+    parse_mode: "Markdown",
+  });
 
-  const success = await addUser(user.id.toString(), userData);
+  userStates[chatId] = 'awaiting_first_name';
+  userTempData[chatId] = {};
+});
 
-  if (success) {
-    bot.sendMessage(
-      chatId,
-      `👋 Welcome, *${user.first_name || "there"}*! You have been registered.`,
-      {
+bot.onText(/\/join/, (msg) => {
+  const chatId = msg.chat.id;
+
+  bot.sendMessage(chatId, "👋 Hi! Let's get you registered.\n\nWhat is your *first name*?", {
+    parse_mode: "Markdown",
+  });
+
+  userStates[chatId] = 'awaiting_first_name';
+  userTempData[chatId] = {};
+});
+
+bot.on('message', async (msg) => {
+  const chatId = msg.chat.id;
+  const text = msg.text;
+
+  if (!userStates[chatId]) return; // Ignore if user is not in registration flow
+
+  switch (userStates[chatId]) {
+    case 'awaiting_first_name':
+      userTempData[chatId].first_name = text;
+      userStates[chatId] = 'awaiting_last_name';
+      bot.sendMessage(chatId, "Great! Now what's your *last name*?", { parse_mode: "Markdown" });
+      break;
+
+    case 'awaiting_last_name':
+      userTempData[chatId].last_name = text;
+      userStates[chatId] = 'awaiting_matric';
+      bot.sendMessage(chatId, "📚 Please enter your *matric number*:", { parse_mode: "Markdown" });
+      break;
+
+    case 'awaiting_matric':
+      userTempData[chatId].matric_number = text;
+      userStates[chatId] = 'awaiting_level';
+      bot.sendMessage(chatId, "🎓 Finally, what level are you in? (e.g., 100, 200, etc.)", {
         parse_mode: "Markdown",
+      });
+      break;
+
+    case 'awaiting_level':
+      userTempData[chatId].level = text;
+
+      const userData = {
+        ...userTempData[chatId],
+        username: msg.from.username || "",
+        is_bot: msg.from.is_bot || false,
+      };
+
+      const success = await addUser(msg.from.id.toString(), userData);
+
+      if (success) {
+        bot.sendMessage(chatId, `✅ Registration complete!\n\nWelcome *${userData.first_name}*!`, {
+          parse_mode: "Markdown",
+        });
+      } else {
+        bot.sendMessage(chatId, "⚠️ Failed to register. Please try again later.");
       }
-    );
-  } else {
-    bot.sendMessage(
-      chatId,
-      `⚠️ Something went wrong while registering you. Please try again later.`
-    );
+
+      // Clear the state and temp data
+      delete userStates[chatId];
+      delete userTempData[chatId];
+      break;
   }
 });
+
+
+bot.onText(/\/view_info/, async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id.toString();
+
+  try {
+    const db = admin.database();
+    const snapshot = await db.ref(`users/${userId}`).once('value');
+    const userData = snapshot.val();
+
+    if (!userData) {
+      return bot.sendMessage(chatId, "😕 No user data found. Please use /start to register.");
+    }
+
+    const info = `
+🧾 *Your Information:*
+
+*First Name:* ${userData.first_name || "Not set"}
+*Last Name:* ${userData.last_name || "Not set"}
+*Matric Number:* ${userData.matric_number || "Not set"}
+*Level:* ${userData.level || "Not set"}
+`;
+
+    bot.sendMessage(chatId, info, { parse_mode: "Markdown" });
+  } catch (error) {
+    console.error("Error fetching user info:", error);
+    bot.sendMessage(chatId, "❌ Couldn't retrieve your info. Please try again later.");
+  }
+});
+
+
+bot.onText(/\/update_info/, (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id.toString();
+
+  const options = {
+    reply_markup: {
+      keyboard: [["First Name", "Last Name"], ["Matric Number", "Level"]],
+      one_time_keyboard: true,
+      resize_keyboard: true,
+    },
+  };
+
+  bot.sendMessage(chatId, "🛠 What would you like to update?", options);
+  userStates[userId] = { step: 'choose_field' };
+});
+
+bot.on('message', async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id.toString();
+  const text = msg.text.trim();
+
+  if (!userStates[userId]) return;
+
+  const state = userStates[userId];
+
+  // Step 1: Choosing which field to update
+  if (state.step === 'choose_field') {
+    const fieldMap = {
+      "First Name": "first_name",
+      "Last Name": "last_name",
+      "Matric Number": "matric_number",
+      "Level": "level",
+    };
+
+    const field = fieldMap[text];
+    if (!field) {
+      return bot.sendMessage(chatId, "❌ Please choose a valid option.");
+    }
+
+    state.field = field;
+    state.step = 'enter_new_value';
+
+    bot.sendMessage(chatId, `✏️ Enter your new *${text}*:`, { parse_mode: "Markdown" });
+  }
+
+  // Step 2: Entering new value
+  else if (state.step === 'enter_new_value') {
+    const db = admin.database();
+    const ref = db.ref(`users/${userId}`);
+
+    try {
+      await ref.update({ [state.field]: text });
+      bot.sendMessage(chatId, "✅ Info updated successfully!");
+    } catch (error) {
+      console.error("Update error:", error);
+      bot.sendMessage(chatId, "❌ Failed to update your info.");
+    }
+
+    delete userStates[userId]; // Clear state
+  }
+});
+
+
+
 
 //Done
 bot.onText(/\/help/, (msg) => {
@@ -125,6 +270,49 @@ bot.onText(/\/admin/, (msg) => {
   bot.sendMessage(msg.chat.id, adminMessage, { parse_mode: "Markdown" });
 });
 
+const adminStates = {}; // Track admin input state
+
+bot.onText(/\/send_announcement/, (msg) => {
+  const chatId = msg.chat.id;
+
+  // Ask for the announcement content
+  bot.sendMessage(
+    chatId,
+    "📢 Please type the announcement message you'd like to send to all users:"
+  );
+
+  adminStates[chatId] = 'awaiting_announcement';
+});
+
+bot.on('message', async (msg) => {
+  const chatId = msg.chat.id;
+  const text = msg.text;
+
+  // Only respond if the admin is expected to send an announcement
+  if (adminStates[chatId] === 'awaiting_announcement') {
+    try {
+      const userIds = await getUserIds(); // Fetch all user IDs
+
+      if (userIds.length > 0) {
+        for (const userId of userIds) {
+          await bot.sendMessage(userId, `📣 Announcement:\n\n${text}`);
+        }
+
+        bot.sendMessage(chatId, "✅ Announcement sent to all users.");
+      } else {
+        bot.sendMessage(chatId, "⚠️ No users found in the database.");
+      }
+    } catch (error) {
+      console.error("Error sending announcements:", error);
+      bot.sendMessage(chatId, "❌ There was an error sending the announcement.");
+    }
+
+
+    // Clear the state
+    delete adminStates[chatId];
+  }
+});
+
 bot.onText(/\/add_users/, (msg) => {
   const opts = {
     reply_markup: {
@@ -139,42 +327,9 @@ bot.onText(/\/add_users/, (msg) => {
   bot.sendMessage(msg.chat.id, "*Admin Panel*", opts);
 });
 
-bot.onText(/\/send_announcement/, async (msg) => {
-  const chatId = msg.chat.id;
 
-  // Send a confirmation message to the admin
-  bot.sendMessage(
-    chatId,
-    "Welcome to Covenant University Telegram Bot. Preparing to send announcements..."
-  );
-
-  try {
-    const userIds = await getUserIds(); // Fetch all user IDs
-
-    if (userIds.length > 0) {
-      // Send announcement to each user
-      userIds.forEach((userId) => {
-        bot.sendMessage(
-          userId,
-          "This is a test announcement from Covenant University Telegram Bot!"
-        );
-      });
-
-      bot.sendMessage(chatId, "Announcements sent to all users.");
-    } else {
-      bot.sendMessage(chatId, "No users found in the database.");
-    }
-  } catch (error) {
-    console.error("Error sending announcements:", error);
-    bot.sendMessage(chatId, "There was an error sending the announcements.");
-  }
-});
 
 bot.onText(/\/add_event/, (msg) => {
-  bot.sendMessage(msg.chat.id, "Welcome to Covenant University Telegram Bot");
-});
-
-bot.onText(/\/send_announcements/, (msg) => {
   bot.sendMessage(msg.chat.id, "Welcome to Covenant University Telegram Bot");
 });
 
@@ -289,12 +444,12 @@ bot.on("callback_query", (callbackQuery) => {
   bot.answerCallbackQuery(callbackQuery.id);
 });
 
-bot.on("message", (msg) => {
-  const chatId = msg.chat.id;
-  if (!msg.text.startsWith("/")) {
-    bot.sendMessage(chatId, "Received your message");
-  }
-});
+// bot.on("message", (msg) => {
+//   const chatId = msg.chat.id;
+//   if (!msg.text.startsWith("/")) {
+//     bot.sendMessage(chatId, "Received your message");
+//   }
+// });
 
 // --- Express Server Setup ---
 app.get("/", (req, res) => {
