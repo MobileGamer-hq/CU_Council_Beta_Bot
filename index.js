@@ -3,9 +3,10 @@ const TelegramBot = require("node-telegram-bot-api");
 
 const path = require("path");
 const fs = require("fs");
-const commands = require("./data/commands");
+const {commands, adminCommands} = require("./data/commands");
 const { adminMessage } = require("./data/messages");
-const { getUserIds, addUser } = require("./utilities/database");
+const admin = require("./utilities/firebase"); // Import the firebase admin SDK
+const { getUserIds, addUser, getUser, addAdminByMatricNumber } = require("./utilities/database");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -15,8 +16,6 @@ require("dotenv").config();
 // --- Telegram Bot Setup ---
 const token = process.env.BOT_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
-
-bot.setMyCommands(commands);
 
 bot.onText(/\/echo (.+)/, (msg, match) => {
   const chatId = msg.chat.id;
@@ -32,53 +31,69 @@ const userTempData = {}; // To temporarily store user data
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
 
-  bot.sendMessage(chatId, "👋 Hi! Let's get you registered.\n\nWhat is your *first name*?", {
-    parse_mode: "Markdown",
-  });
+  bot.sendMessage(
+    chatId,
+    "👋 Hi! Let's get you registered.\n\nWhat is your *first name*?",
+    {
+      parse_mode: "Markdown",
+    }
+  );
 
-  userStates[chatId] = 'awaiting_first_name';
+  userStates[chatId] = "awaiting_first_name";
   userTempData[chatId] = {};
 });
 
 bot.onText(/\/join/, (msg) => {
   const chatId = msg.chat.id;
 
-  bot.sendMessage(chatId, "👋 Hi! Let's get you registered.\n\nWhat is your *first name*?", {
-    parse_mode: "Markdown",
-  });
+  bot.sendMessage(
+    chatId,
+    "👋 Hi! Let's get you registered.\n\nWhat is your *first name*?",
+    {
+      parse_mode: "Markdown",
+    }
+  );
 
-  userStates[chatId] = 'awaiting_first_name';
+  userStates[chatId] = "awaiting_first_name";
   userTempData[chatId] = {};
 });
 
-bot.on('message', async (msg) => {
+bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
 
   if (!userStates[chatId]) return; // Ignore if user is not in registration flow
 
   switch (userStates[chatId]) {
-    case 'awaiting_first_name':
+    case "awaiting_first_name":
       userTempData[chatId].first_name = text;
-      userStates[chatId] = 'awaiting_last_name';
-      bot.sendMessage(chatId, "Great! Now what's your *last name*?", { parse_mode: "Markdown" });
-      break;
-
-    case 'awaiting_last_name':
-      userTempData[chatId].last_name = text;
-      userStates[chatId] = 'awaiting_matric';
-      bot.sendMessage(chatId, "📚 Please enter your *matric number*:", { parse_mode: "Markdown" });
-      break;
-
-    case 'awaiting_matric':
-      userTempData[chatId].matric_number = text;
-      userStates[chatId] = 'awaiting_level';
-      bot.sendMessage(chatId, "🎓 Finally, what level are you in? (e.g., 100, 200, etc.)", {
+      userStates[chatId] = "awaiting_last_name";
+      bot.sendMessage(chatId, "Great! Now what's your *last name*?", {
         parse_mode: "Markdown",
       });
       break;
 
-    case 'awaiting_level':
+    case "awaiting_last_name":
+      userTempData[chatId].last_name = text;
+      userStates[chatId] = "awaiting_matric";
+      bot.sendMessage(chatId, "📚 Please enter your *matric number*:", {
+        parse_mode: "Markdown",
+      });
+      break;
+
+    case "awaiting_matric":
+      userTempData[chatId].matric_number = text;
+      userStates[chatId] = "awaiting_level";
+      bot.sendMessage(
+        chatId,
+        "🎓 Finally, what level are you in? (e.g., 100, 200, etc.)",
+        {
+          parse_mode: "Markdown",
+        }
+      );
+      break;
+
+    case "awaiting_level":
       userTempData[chatId].level = text;
 
       const userData = {
@@ -90,32 +105,59 @@ bot.on('message', async (msg) => {
       const success = await addUser(msg.from.id.toString(), userData);
 
       if (success) {
-        bot.sendMessage(chatId, `✅ Registration complete!\n\nWelcome *${userData.first_name}*!`, {
-          parse_mode: "Markdown",
-        });
+        bot.sendMessage(
+          chatId,
+          `✅ Registration complete!\n\nWelcome *${userData.first_name}*!`,
+          {
+            parse_mode: "Markdown",
+          }
+        );
       } else {
-        bot.sendMessage(chatId, "⚠️ Failed to register. Please try again later.");
+        bot.sendMessage(
+          chatId,
+          "⚠️ Failed to register. Please try again later."
+        );
       }
 
       // Clear the state and temp data
       delete userStates[chatId];
       delete userTempData[chatId];
+
+      try {
+        // Fetch admin list from Firebase
+        const snapshot = await admin.database().ref("admins").once("value");
+        const adminList = snapshot.val() || {};
+        const isAdmin = adminList[chatId];
+    
+        // Check if the user is an admin and update the bot's commands accordingly
+        if (isAdmin) {
+          await bot.setMyCommands(adminCommands);
+          return bot.sendMessage(chatId, "🔐 Welcome Admin! You now have access to admin commands.");
+        } else {
+          await bot.setMyCommands(commands);
+          return bot.sendMessage(chatId, "👋 Use /help to explore what I can do.");
+        }
+      } catch (err) {
+        console.error("Failed to fetch admin list:", err);
+        return bot.sendMessage(chatId, "⚠️ An error occurred while checking your role.");
+      }
+
       break;
   }
 });
-
 
 bot.onText(/\/view_info/, async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id.toString();
 
   try {
-    const db = admin.database();
-    const snapshot = await db.ref(`users/${userId}`).once('value');
-    const userData = snapshot.val();
+    const userData = await getUser(userId);
 
     if (!userData) {
-      return bot.sendMessage(chatId, "😕 No user data found. Please use /start to register.");
+      return bot.sendMessage(
+        chatId,
+        "😕 No user data found. Please use /start to register."
+      );
     }
 
     const info = `
@@ -130,10 +172,12 @@ bot.onText(/\/view_info/, async (msg) => {
     bot.sendMessage(chatId, info, { parse_mode: "Markdown" });
   } catch (error) {
     console.error("Error fetching user info:", error);
-    bot.sendMessage(chatId, "❌ Couldn't retrieve your info. Please try again later.");
+    bot.sendMessage(
+      chatId,
+      "❌ Couldn't retrieve your info. Please try again later."
+    );
   }
 });
-
 
 bot.onText(/\/update_info/, (msg) => {
   const chatId = msg.chat.id;
@@ -141,17 +185,20 @@ bot.onText(/\/update_info/, (msg) => {
 
   const options = {
     reply_markup: {
-      keyboard: [["First Name", "Last Name"], ["Matric Number", "Level"]],
+      keyboard: [
+        ["First Name", "Last Name"],
+        ["Matric Number", "Level"],
+      ],
       one_time_keyboard: true,
       resize_keyboard: true,
     },
   };
 
   bot.sendMessage(chatId, "🛠 What would you like to update?", options);
-  userStates[userId] = { step: 'choose_field' };
+  userStates[userId] = { step: "choose_field" };
 });
 
-bot.on('message', async (msg) => {
+bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id.toString();
   const text = msg.text.trim();
@@ -161,12 +208,12 @@ bot.on('message', async (msg) => {
   const state = userStates[userId];
 
   // Step 1: Choosing which field to update
-  if (state.step === 'choose_field') {
+  if (state.step === "choose_field") {
     const fieldMap = {
       "First Name": "first_name",
       "Last Name": "last_name",
       "Matric Number": "matric_number",
-      "Level": "level",
+      Level: "level",
     };
 
     const field = fieldMap[text];
@@ -175,13 +222,15 @@ bot.on('message', async (msg) => {
     }
 
     state.field = field;
-    state.step = 'enter_new_value';
+    state.step = "enter_new_value";
 
-    bot.sendMessage(chatId, `✏️ Enter your new *${text}*:`, { parse_mode: "Markdown" });
+    bot.sendMessage(chatId, `✏️ Enter your new *${text}*:`, {
+      parse_mode: "Markdown",
+    });
   }
 
   // Step 2: Entering new value
-  else if (state.step === 'enter_new_value') {
+  else if (state.step === "enter_new_value") {
     const db = admin.database();
     const ref = db.ref(`users/${userId}`);
 
@@ -196,9 +245,6 @@ bot.on('message', async (msg) => {
     delete userStates[userId]; // Clear state
   }
 });
-
-
-
 
 //Done
 bot.onText(/\/help/, (msg) => {
@@ -228,12 +274,154 @@ bot.onText(/\/events/, (msg) => {
   bot.sendMessage(msg.chat.id, "Welcome to Covenant University Telegram Bot");
 });
 
-bot.onText(/\/contact/, (msg) => {
-  bot.sendMessage(msg.chat.id, "Welcome to Covenant University Telegram Bot");
+const contactSessions = {}; // temp in-memory store for contact flow
+
+bot.onText(/\/contact/, async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+
+  contactSessions[userId] = { step: "awaiting_message" };
+
+  bot.sendMessage(
+    chatId,
+    `📬 *Contact Management*\n\nYou can send a message to school officials. This message can be sent anonymously or with your details (name & matric number).\n\nPlease type your message below:`,
+    { parse_mode: "Markdown" }
+  );
+});
+
+// Listen for user's message after /contact
+bot.on("message", async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+
+  // Ignore /contact command itself
+  if (msg.text.toLowerCase().startsWith("/contact")) return;
+
+  const session = contactSessions[userId];
+
+  if (session?.step === "awaiting_message") {
+    contactSessions[userId].message = msg.text;
+    contactSessions[userId].step = "awaiting_identity_choice";
+
+    return bot.sendMessage(
+      chatId,
+      `🕵️‍♂️ Would you like to send this message anonymously or with your name and matric number?`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: "✅ Send Anonymously", callback_data: "send_anonymous" },
+              { text: "👤 Attach My Info", callback_data: "send_with_info" },
+            ],
+          ],
+        },
+      }
+    );
+  }
+});
+
+// Handle button press
+bot.on("callback_query", async (query) => {
+  const userId = query.from.id;
+  const chatId = query.message.chat.id;
+  const data = query.data;
+  const session = contactSessions[userId];
+
+  if (!session || session.step !== "awaiting_identity_choice") return;
+
+  // Fetch user info if needed
+  const db = admin.database();
+  const snapshot = await db.ref(`users/${userId}`).once("value");
+  const userData = snapshot.val();
+
+  let finalMessage = "";
+  if (data === "send_anonymous") {
+    finalMessage = `📩 *Anonymous Message Received:*\n\n${session.message}`;
+  } else if (data === "send_with_info") {
+    finalMessage = `📩 *Message From ${userData.first_name || "Unknown"} ${
+      userData.last_name || ""
+    }*\n*Matric Number:* ${userData.matric_number || "Unknown"}\n\n${
+      session.message
+    }`;
+  }
+
+  // Replace with actual admin group/chat ID
+  const ADMIN_CHAT_ID = "YOUR_ADMIN_CHAT_ID_HERE";
+
+  await bot.sendMessage(ADMIN_CHAT_ID, finalMessage, {
+    parse_mode: "Markdown",
+  });
+
+  await bot.sendMessage(chatId, "✅ Your message has been sent. Thank you!");
+
+  delete contactSessions[userId];
+
+  // Acknowledge the button press
+  bot.answerCallbackQuery(query.id);
 });
 
 bot.onText(/\/contacts/, (msg) => {
-  bot.sendMessage(msg.chat.id, "Welcome to Covenant University Telegram Bot");
+  const contactInfo = `
+📬 *Covenant University Contact Directory*
+
+
+1️⃣ *Attendance Issues*
+• Biometrics Office – Chapel, 2nd Floor  
+• Dean, Student Affairs  
+✉️ attendance-sa@covenantuniversity.edu.ng  
+✉️ dsa@covenantuniversity.edu.ng
+
+2️⃣ *Hall of Residence Issues*
+• Residency Administrator – Lydia Hall, 1st Floor  
+• Dean, Student Affairs  
+✉️ residency-sa@covenantuniversity.edu.ng  
+✉️ dsa@covenantuniversity.edu.ng
+
+3️⃣ *Hall Facilities Issues*
+• Facilities Officer – Lydia Hall, 2nd Floor
+
+4️⃣ *Exeat Matters*
+• Dean, Student Affairs – Lydia Hall, 2nd Floor  
+✉️ dsa@covenantuniversity.edu.ng
+
+5️⃣ *Financial Issues*
+• School Fees, Refunds, Others  
+✉️ dfs@covenantuniversity.edu.ng
+
+6️⃣ *Medical / Special Care Needs*
+• Head of Welfare & Quality Control  
+• CUSC Welfare Officer – Chapel & Student Council Offices  
+✉️ welfaresecf.cusc@covenantuniversity.edu.ng
+
+7️⃣ *Food/Café Issues*
+• Café Manager  
+• Welfare Office  
+• CUSC Welfare Officer  
+✉️ welfaresecf.cusc@covenantuniversity.edu.ng
+
+8️⃣ *Academic Progression / Performance*
+✉️ academicaffairs@covenantuniversity.edu.ng
+
+9️⃣ *Postgraduate Issues*
+✉️ deansps@covenantuniversity.edu.ng
+
+🔟 *Spiritual / Counseling Issues*
+• Chaplain, Associate Chaplain  
+• Student Chaplaincy Office  
+✉️ cu.studentchaplaincy@gmail.com
+
+1️⃣1️⃣ *Portal / Registration / Login Issues*
+• CSIS Office – CMSS, 2nd Floor  
+• ICT – Zenith Bank  
+✉️ dcsis@covenantuniversity.edu.ng
+
+1️⃣2️⃣ *Follow-Up on Issues*
+• CUSC Chairman  
+• Student Council Office  
+✉️ chairman.cusc@covenantuniversity.edu.ng
+`;
+
+  bot.sendMessage(msg.chat.id, contactInfo, { parse_mode: "Markdown" });
 });
 
 bot.onText(/\/suggest/, (msg) => {
@@ -265,13 +453,65 @@ bot.onText(/\/timetable/, (msg) => {
   });
 });
 
+//Done
+bot.onText(/\/view_events/, async (msg) => {
+  const chatId = msg.chat.id;
+  const db = admin.database();
+
+  try {
+    const snapshot = await db.ref("events").once("value");
+    const events = snapshot.val();
+
+    if (!events) {
+      return bot.sendMessage(chatId, "📭 No events available at the moment.");
+    }
+
+    let message = "📅 *Upcoming Events:*\n\n";
+    Object.values(events).forEach((event, index) => {
+      message += `*${index + 1}. ${event.title}*\n📖 ${
+        event.description
+      }\n🗓 Date: ${event.date}\n\n`;
+    });
+
+    bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+  } catch (error) {
+    console.error("Error fetching events:", error);
+    bot.sendMessage(chatId, "❌ Couldn't load events. Please try again.");
+  }
+});
+
 //Admin Commands
+//Done
 bot.onText(/\/admin/, (msg) => {
   bot.sendMessage(msg.chat.id, adminMessage, { parse_mode: "Markdown" });
 });
 
-const adminStates = {}; // Track admin input state
+bot.onText(/\/add_admin (\S+)/, async (msg, match) => {
+  const chatId = msg.chat.id;
+  const matricNumber = match[1]; // Extract matric number from the command
 
+  // Only allow admins to execute this command
+  const userId = msg.from.id.toString();
+  const db = admin.database();
+  const adminSnapshot = await db.ref("admins").child(userId).once("value");
+
+  if (!adminSnapshot.exists()) {
+    return bot.sendMessage(chatId, "⚠️ You are not authorized to add admins.");
+  }
+
+  // Call the function to add the admin by matric number
+  const addedUser = await addAdminByMatricNumber(matricNumber);
+
+  if (addedUser) {
+    bot.sendMessage(chatId, `✅ Admin added successfully:\n\nName: ${addedUser.first_name} ${addedUser.last_name}\nMatric Number: ${addedUser.matric_number}`);
+  } else {
+    bot.sendMessage(chatId, "⚠️ No user found with this matric number.");
+  }
+});
+
+
+const adminStates = {}; // Track admin input state
+//Done
 bot.onText(/\/send_announcement/, (msg) => {
   const chatId = msg.chat.id;
 
@@ -281,15 +521,15 @@ bot.onText(/\/send_announcement/, (msg) => {
     "📢 Please type the announcement message you'd like to send to all users:"
   );
 
-  adminStates[chatId] = 'awaiting_announcement';
+  adminStates[chatId] = "awaiting_announcement";
 });
 
-bot.on('message', async (msg) => {
+bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
 
   // Only respond if the admin is expected to send an announcement
-  if (adminStates[chatId] === 'awaiting_announcement') {
+  if (adminStates[chatId] === "awaiting_announcement") {
     try {
       const userIds = await getUserIds(); // Fetch all user IDs
 
@@ -304,16 +544,18 @@ bot.on('message', async (msg) => {
       }
     } catch (error) {
       console.error("Error sending announcements:", error);
-      bot.sendMessage(chatId, "❌ There was an error sending the announcement.");
+      bot.sendMessage(
+        chatId,
+        "❌ There was an error sending the announcement."
+      );
     }
-
 
     // Clear the state
     delete adminStates[chatId];
   }
 });
 
-bot.onText(/\/add_users/, (msg) => {
+bot.onText(/\/add_user/, (msg) => {
   const opts = {
     reply_markup: {
       inline_keyboard: [
@@ -327,10 +569,60 @@ bot.onText(/\/add_users/, (msg) => {
   bot.sendMessage(msg.chat.id, "*Admin Panel*", opts);
 });
 
-
+const addEventSessions = {};
 
 bot.onText(/\/add_event/, (msg) => {
-  bot.sendMessage(msg.chat.id, "Welcome to Covenant University Telegram Bot");
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+
+  addEventSessions[userId] = { step: "awaiting_title" };
+  bot.sendMessage(
+    chatId,
+    "🗓 *Add New Event*\n\nPlease enter the event title:",
+    {
+      parse_mode: "Markdown",
+    }
+  );
+});
+
+bot.on("message", async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+  const text = msg.text;
+
+  const session = addEventSessions[userId];
+  if (!session) return;
+
+  if (session.step === "awaiting_title") {
+    session.title = text;
+    session.step = "awaiting_description";
+    return bot.sendMessage(chatId, "✏️ Please enter the event description:");
+  }
+
+  if (session.step === "awaiting_description") {
+    session.description = text;
+    session.step = "awaiting_date";
+    return bot.sendMessage(
+      chatId,
+      "📅 Please enter the event date (format: YYYY-MM-DD):"
+    );
+  }
+
+  if (session.step === "awaiting_date") {
+    session.date = text;
+
+    // Save to Firebase
+    const eventRef = admin.database().ref("events").push();
+    await eventRef.set({
+      title: session.title,
+      description: session.description,
+      date: session.date,
+    });
+
+    bot.sendMessage(chatId, "✅ Event has been added successfully!");
+
+    delete addEventSessions[userId];
+  }
 });
 
 bot.onText(/\/update_contacts/, (msg) => {
@@ -351,36 +643,6 @@ bot.onText(/\/create_poll/, (msg) => {
             callback_data: "multiple_choice_poll",
           },
         ],
-      ],
-    },
-  });
-});
-
-//
-
-bot.onText(/\/choose/, (msg) => {
-  const chatId = msg.chat.id; // Get the chat ID of the user
-
-  bot.sendMessage(chatId, "Choose:", {
-    reply_markup: {
-      keyboard: [
-        ["Option 1"], // first row with one button
-        ["Option 2"], // second row with one button
-      ],
-      resize_keyboard: true, // Automatically resizes the keyboard
-      one_time_keyboard: true, // Keyboard disappears after the user selects an option
-    },
-  });
-});
-
-bot.onText(/\/inline/, (msg) => {
-  const chatId = msg.chat.id;
-
-  bot.sendMessage(chatId, "Pick one:", {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: "Google", url: "https://google.com" }],
-        [{ text: "Click Me", callback_data: "clicked" }],
       ],
     },
   });
@@ -443,13 +705,6 @@ bot.on("callback_query", (callbackQuery) => {
   // Acknowledge the callback
   bot.answerCallbackQuery(callbackQuery.id);
 });
-
-// bot.on("message", (msg) => {
-//   const chatId = msg.chat.id;
-//   if (!msg.text.startsWith("/")) {
-//     bot.sendMessage(chatId, "Received your message");
-//   }
-// });
 
 // --- Express Server Setup ---
 app.get("/", (req, res) => {

@@ -1,29 +1,35 @@
 const adminMessage = `
-*Admin Commands:*
-/users
+*🔧 Admin Commands:*
+
+👤 *User Management*
+/users – View total user count
 /add_user – Add a new user to the system  
 /remove_user – Remove a user from the system  
 /view_users – View all registered users  
 
+📢 *Messaging*
 /send_message – Send a message to all users  
-/send_announcement – Send a message to all users  
+/send_announcement – Broadcast an announcement  
+
+🗳️ *Polls & Feedback*
+/add_poll – Create a new poll  
+/close_poll – Close an active poll  
+/view_polls – View ongoing polls  
 /view_feedback – View feedback from users  
 /view_suggestions – View suggestions from users  
-/view_polls – View ongoing polls
 
-/upload  
-/upload_timetable
+📅 *Events & Scheduling*
+/add_event – Add a new event to the calendar  
+/view_events – View all scheduled events  
+/upload_timetable – Upload the class timetable  
 
-/add
-/add_event
-/add_poll
-
-/update
-/update_contact
-/update_contacts
-
-/
-  `;
+📂 *Data Management*
+/upload – Upload a file or document  
+/add – Add general data  
+/update – Update general data  
+/update_contact – Update a contact  
+/update_contacts – Update multiple contacts  
+`;
 
 const helpMessage = `
 👋 *Welcome to the Covenant University Student Council Bot!*
