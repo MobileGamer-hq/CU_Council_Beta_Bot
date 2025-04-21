@@ -13,13 +13,27 @@ const {
 } = require("./utilities/database");
 
 const app = express();
-const port = process.env.PORT || 3000;
+
 
 require("dotenv").config();
 
 // --- Telegram Bot Setup ---
 const token = process.env.BOT_TOKEN;
-const bot = new TelegramBot(token, { polling: true });
+const port = process.env.PORT || 3000;
+const url = 'https://cu-council-beta-bot.onrender.com/'; // or your ngrok HTTPS URL
+
+// Create bot instance, don't start polling
+const bot = new TelegramBot(token, { webHook: { port: port } });
+
+
+// Set the webhook
+bot.setWebHook(`${url}/bot${token}`);
+
+// This endpoint will receive updates
+app.post(`/bot${token}`, (req, res) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
+});
 
 bot.onText(/\/echo (.+)/, (msg, match) => {
   const chatId = msg.chat.id;
