@@ -478,7 +478,7 @@ bot.onText(/\/view_events/, async (msg) => {
   }
 });
 
-bot.onText(/\/events/, (msg) => {
+bot.onText(/\/events/, async (msg) => {
   const chatId = msg.chat.id;
   const db = admin.database();
 
