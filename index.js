@@ -4,7 +4,6 @@ const TelegramBot = require("node-telegram-bot-api");
 const path = require("path");
 const fs = require("fs");
 const { commands, adminCommands } = require("./data/commands");
-const { adminMessage } = require("./data/messages");
 const admin = require("./utilities/firebase"); // Import the firebase admin SDK
 const {
   getUserIds,
@@ -584,6 +583,38 @@ bot.onText(/\/announcements/, async (msg) => {
 //Admin Commands
 //Done
 bot.onText(/\/admin/, (msg) => {
+  const adminMessage = `
+*🔧 Admin Commands:*
+
+👤 *User Management*
+/users – View total user count
+/add_user – Add a new user to the system  
+/remove_user – Remove a user from the system  
+/view_users – View all registered users  
+
+📢 *Messaging*
+/send_message – Send a message to all users  
+/send_announcement – Broadcast an announcement  
+
+🗳️ *Polls & Feedback*
+/add_poll – Create a new poll  
+/close_poll – Close an active poll  
+/view_polls – View ongoing polls  
+/view_feedback – View feedback from users  
+/view_suggestions – View suggestions from users  
+
+📅 *Events & Scheduling*
+/add_event – Add a new event to the calendar  
+/view_events – View all scheduled events  
+/upload_timetable – Upload the class timetable  
+
+📂 *Data Management*
+/upload – Upload a file or document  
+/add – Add general data  
+/update – Update general data  
+/update_contact – Update a contact  
+/update_contacts – Update multiple contacts  
+`;
   bot.sendMessage(msg.chat.id, adminMessage, { parse_mode: "Markdown" });
 });
 
