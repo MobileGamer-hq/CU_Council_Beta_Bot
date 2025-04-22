@@ -15,6 +15,7 @@ const {
   addAdminByMatricNumber,
 } = require("./utilities/database");
 const faq = require("./data/faq");
+const { midDayMessages, morningMessages, eveningMessages } = require("./data/messages");
 
 const app = express();
 app.use(express.json());
