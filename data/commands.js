@@ -14,6 +14,8 @@ const commands = [
   // { command: "/fun", description: "Get daily quotes, fun facts, or trivia" },
   { command: "/submit_lost_and_found", description: "Submit a lost or found item (send a picture and description)" },
   { command: "/lost_and_found", description: "View lost and found items with pictures and descriptions" },
+  { command: "/semester_events", description: "View events for the current semester" },
+
 ];
 
 

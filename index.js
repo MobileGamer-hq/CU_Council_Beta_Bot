@@ -3,8 +3,8 @@ const TelegramBot = require("node-telegram-bot-api");
 
 const path = require("path");
 const fs = require("fs");
-const csv = require('csv-parser');
-const cron = require('node-cron');
+const csv = require("csv-parser");
+const cron = require("node-cron");
 
 const { commands, adminCommands } = require("./data/commands");
 const admin = require("./utilities/firebase"); // Import the firebase admin SDK
@@ -15,7 +15,11 @@ const {
   addAdminByMatricNumber,
 } = require("./utilities/database");
 const faq = require("./data/faq");
-const { midDayMessages, morningMessages, eveningMessages } = require("./data/messages");
+const {
+  midDayMessages,
+  morningMessages,
+  eveningMessages,
+} = require("./data/messages");
 
 const app = express();
 app.use(express.json());
@@ -436,7 +440,6 @@ bot.onText(/\/faq/, async (msg) => {
   }
 });
 
-
 //Done
 bot.onText(/\/contacts/, (msg) => {
   const contactInfo = `
@@ -517,7 +520,10 @@ bot.onText(/\/view_lost_and_found/, async (msg) => {
     const items = snapshot.val();
 
     if (!items) {
-      return bot.sendMessage(chatId, "📭 No lost and found items available at the moment.");
+      return bot.sendMessage(
+        chatId,
+        "📭 No lost and found items available at the moment."
+      );
     }
 
     let message = "🔍 *Lost and Found Items:*\n\n";
@@ -535,7 +541,10 @@ bot.onText(/\/view_lost_and_found/, async (msg) => {
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
     console.error("Error fetching lost and found items:", error);
-    bot.sendMessage(chatId, "❌ Couldn't load lost and found items. Please try again.");
+    bot.sendMessage(
+      chatId,
+      "❌ Couldn't load lost and found items. Please try again."
+    );
   }
 });
 
@@ -549,7 +558,10 @@ bot.onText(/\/lost_and_found/, async (msg) => {
     const items = snapshot.val();
 
     if (!items) {
-      return bot.sendMessage(chatId, "📭 No lost and found items available at the moment.");
+      return bot.sendMessage(
+        chatId,
+        "📭 No lost and found items available at the moment."
+      );
     }
 
     let message = "🔍 *Lost and Found Items:*\n\n";
@@ -567,11 +579,12 @@ bot.onText(/\/lost_and_found/, async (msg) => {
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
     console.error("Error fetching lost and found items:", error);
-    bot.sendMessage(chatId, "❌ Couldn't load lost and found items. Please try again.");
+    bot.sendMessage(
+      chatId,
+      "❌ Couldn't load lost and found items. Please try again."
+    );
   }
 });
-
-
 
 // Command to send lost or found items
 bot.onText(/\/submit_lost_and_found/, async (msg) => {
@@ -580,7 +593,7 @@ bot.onText(/\/submit_lost_and_found/, async (msg) => {
 
   // Start a session for the user
   addEventSessions[userId] = addEventSessions[userId] || {};
-  addEventSessions[userId].step = "awaiting_item_picture";  // Step 1: Wait for a picture
+  addEventSessions[userId].step = "awaiting_item_picture"; // Step 1: Wait for a picture
 
   bot.sendMessage(
     chatId,
@@ -636,7 +649,11 @@ bot.on("message", async (msg) => {
 
     if (admins) {
       // Send item details to each admin
-      const itemMessage = `📢 *New Lost/Found Item Submitted:*\n\nDescription: ${newItem.description}\n\nItem Picture: ${newItem.picture ? newItem.picture : "No picture provided"}\n\nSubmitted by User ID: ${userId}`;
+      const itemMessage = `📢 *New Lost/Found Item Submitted:*\n\nDescription: ${
+        newItem.description
+      }\n\nItem Picture: ${
+        newItem.picture ? newItem.picture : "No picture provided"
+      }\n\nSubmitted by User ID: ${userId}`;
 
       Object.keys(admins).forEach((adminId) => {
         bot.sendMessage(adminId, itemMessage, { parse_mode: "Markdown" });
@@ -648,17 +665,16 @@ bot.on("message", async (msg) => {
   }
 });
 
-
 const events = [];
 
 // Load events data from CSV file
-fs.createReadStream('./files/events.csv') // Path to your CSV file
+fs.createReadStream("./files/events.csv") // Path to your CSV file
   .pipe(csv())
-  .on('data', (row) => {
+  .on("data", (row) => {
     events.push(row);
   })
-  .on('end', () => {
-    console.log('CSV data loaded');
+  .on("end", () => {
+    console.log("CSV data loaded");
   });
 
 // Function to format the event data into a table
@@ -667,9 +683,9 @@ function formatEventTable(events) {
   const separator = `| --- | --- | --- | --- | --- | --- |`;
   const rows = events
     .map((event) => {
-      return `| ${event['S/N']} | ${event['Event Name']} | ${event['Date']} | ${event['Time']} | ${event['Venue']} | ${event['Event Type']} |`;
+      return `| ${event["S/N"]} | ${event["Event Name"]} | ${event["Date"]} | ${event["Time"]} | ${event["Venue"]} | ${event["Event Type"]} |`;
     })
-    .join('\n');
+    .join("\n");
 
   return `${header}\n${separator}\n${rows}`;
 }
@@ -680,9 +696,12 @@ bot.onText(/\/semester_events/, (msg) => {
   const eventTable = formatEventTable(events);
 
   // Send the formatted event table to the user
-  bot.sendMessage(msg.chat.id, `Here are the upcoming semester events:\n\n${eventTable}`, { parse_mode: 'Markdown' });
+  bot.sendMessage(
+    msg.chat.id,
+    `Here are the upcoming semester events:\n\n${eventTable}`,
+    { parse_mode: "Markdown" }
+  );
 });
-
 
 //Done
 bot.onText(/\/timetable/, (msg) => {
@@ -750,7 +769,6 @@ bot.onText(/\/view_events/, async (msg) => {
     bot.sendMessage(chatId, "❌ Couldn't load events. Please try again.");
   }
 });
-
 
 bot.onText(/\/events/, async (msg) => {
   const chatId = msg.chat.id;
@@ -988,7 +1006,6 @@ bot.on("message", async (msg) => {
   }
 });
 
-
 //Done
 
 // Command to start announcement
@@ -1037,10 +1054,13 @@ bot.on("message", async (msg) => {
         // Send the announcement to all users
         Object.keys(users).forEach((userId) => {
           const userChatId = users[userId].chatId; // Assuming the user object has a `chatId` property
-          bot.sendMessage(userChatId, `📢 *Announcement from ${newAnnouncement.from}:*\n\n${newAnnouncement.message}`, { parse_mode: "Markdown" });
+          bot.sendMessage(
+            userChatId,
+            `📢 *Announcement from ${newAnnouncement.from}:*\n\n${newAnnouncement.message}`,
+            { parse_mode: "Markdown" }
+          );
         });
       }
-
     } catch (error) {
       console.error("❌ Error saving announcement:", error);
       bot.sendMessage(chatId, "❌ Failed to save announcement.");
@@ -1050,7 +1070,6 @@ bot.on("message", async (msg) => {
     delete adminStates[chatId];
   }
 });
-
 
 //For the send announcement command
 bot.on("message", async (msg) => {
@@ -1097,6 +1116,38 @@ bot.onText(/\/add_user/, (msg) => {
   };
 
   bot.sendMessage(msg.chat.id, "*Admin Panel*", opts);
+});
+
+bot.onText(/\/view_users/, async (msg) => {
+  const chatId = msg.chat.id;
+
+  // Get the list of users from Firebase
+  const usersRef = admin.database().ref("users");
+  const usersSnapshot = await usersRef.once("value");
+  const users = usersSnapshot.val();
+
+  if (!users) {
+    bot.sendMessage(chatId, "No users found in the database.");
+    return;
+  }
+
+  let userListMessage = "👥 *List of Users:*\n\n";
+  Object.keys(users).forEach((userId) => {
+    const user = users[userId];
+    const userInfo = `
+      🆔 *ID:* ${userId}
+      👤 *Name:* ${user.first_name} ${user.last_name}
+      🏫 *Matric Number:* ${user.matric_number}
+      🎓 *Level:* ${user.level}
+      🗓 *Joined At:* ${new Date(user.joinedAt).toLocaleString()}
+      🖥 *Username:* ${user.username || "N/A"}
+      🤖 *Is Bot:* ${user.is_bot ? "Yes" : "No"}
+    `;
+    userListMessage += `${userInfo}\n\n`;
+  });
+
+  // Send the list of users to the admin
+  bot.sendMessage(chatId, userListMessage, { parse_mode: "Markdown" });
 });
 
 const addEventSessions = {};
@@ -1190,8 +1241,6 @@ bot.on("message", async (msg) => {
   }
 });
 
-
-
 //Not Done
 bot.onText(/\/update_contacts/, (msg) => {
   bot.sendMessage(msg.chat.id, "Welcome to Covenant University Telegram Bot");
@@ -1255,7 +1304,6 @@ bot.on("message", async (msg) => {
   }, 300000); // 5 minutes in milliseconds
 });
 
-
 //Callback Query
 bot.on("callback_query", (callbackQuery) => {
   const chatId = callbackQuery.message.chat.id;
@@ -1314,7 +1362,6 @@ bot.on("callback_query", (callbackQuery) => {
   bot.answerCallbackQuery(callbackQuery.id);
 });
 
-
 // Function to send random message to a user
 function sendRandomMessage(chatId, messageList) {
   const randomIndex = Math.floor(Math.random() * messageList.length);
@@ -1330,7 +1377,7 @@ async function getUsersFromFirebase() {
 }
 
 // Send random morning message at 8 AM
-cron.schedule('0 8 * * *', async () => {
+cron.schedule("0 8 * * *", async () => {
   console.log("Sending morning messages to all users...");
   const users = await getUsersFromFirebase();
   if (users) {
@@ -1341,7 +1388,7 @@ cron.schedule('0 8 * * *', async () => {
 });
 
 // Send random midday message at 12 PM
-cron.schedule('0 12 * * *', async () => {
+cron.schedule("0 12 * * *", async () => {
   console.log("Sending midday messages to all users...");
   const users = await getUsersFromFirebase();
   if (users) {
@@ -1352,7 +1399,7 @@ cron.schedule('0 12 * * *', async () => {
 });
 
 // Send random evening message at 8 PM
-cron.schedule('0 20 * * *', async () => {
+cron.schedule("0 20 * * *", async () => {
   console.log("Sending evening messages to all users...");
   const users = await getUsersFromFirebase();
   if (users) {
