@@ -661,28 +661,25 @@ fs.createReadStream('./files/events.csv') // Path to your CSV file
     console.log('CSV data loaded');
   });
 
-// Function to format the event data into a table
-function formatEventTable(events) {
-  const header = `| S/N | Event Name | Date | Time | Venue | Event Type |`;
-  const separator = `| --- | --- | --- | --- | --- | --- |`;
-  const rows = events
-    .map((event) => {
-      return `| ${event['S/N']} | ${event['Event Name']} | ${event['Date']} | ${event['Time']} | ${event['Venue']} | ${event['Event Type']} |`;
-    })
-    .join('\n');
-
-  return `${header}\n${separator}\n${rows}`;
+function formatSingleEvent(event) {
+  return `📌 *${event["Event Name"]}*\n\n*Date:* ${event["Date"]}\n*Time:* ${event["Time"]}\n*Venue:* ${event["Venue"]}\n*Type:* ${event["Event Type"]}`;
 }
 
-// Respond to /semester_events command
-bot.onText(/\/semester_events/, (msg) => {
-  // Format the events data into a table
-  const eventTable = formatEventTable(events);
+bot.onText(/\/semester_events/, async (msg) => {
+  const chatId = msg.chat.id;
 
-  // Send the formatted event table to the user
-  bot.sendMessage(msg.chat.id, `Here are the upcoming semester events:\n\n${eventTable}`, { parse_mode: 'Markdown' });
+  if (events.length === 0) {
+    bot.sendMessage(chatId, "⚠️ Events are still loading. Please try again in a few seconds.");
+    return;
+  }
+
+  bot.sendMessage(chatId, "Here are the upcoming semester events:", { parse_mode: "Markdown" });
+
+  for (const event of events) {
+    const message = formatSingleEvent(event);
+    await bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+  }
 });
-
 
 //Done
 bot.onText(/\/timetable/, (msg) => {
