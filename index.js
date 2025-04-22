@@ -11,6 +11,7 @@ const {
   getUser,
   addAdminByMatricNumber,
 } = require("./utilities/database");
+const faq = require("./data/faq");
 
 const app = express();
 app.use(express.json());
@@ -405,22 +406,32 @@ bot.on("callback_query", async (query) => {
   bot.answerCallbackQuery(query.id);
 });
 
-
-//Done
-bot.onText(/\/faq/, (msg) => {
+bot.onText(/\/faq/, async (msg) => {
   const chatId = msg.chat.id;
+  const db = admin.database();
 
-  // Prepare the FAQ list for display
-  let faqMessage = "❓ *Frequently Asked Questions*\n\n";
+  try {
+    const snapshot = await db.ref("faqs").once("value");
+    const faqs = snapshot.val();
 
-  faq.forEach((item, index) => {
-    faqMessage += `*Q${index + 1}:* ${item.question}\n`;
-    faqMessage += `*A:* ${item.answer}\n\n`;
-  });
+    if (!faqs) {
+      return bot.sendMessage(chatId, "❓ No FAQs available at the moment.");
+    }
 
-  // Send the FAQ list to the user
-  bot.sendMessage(chatId, faqMessage, { parse_mode: "Markdown" });
+    let faqMessage = "❓ *Frequently Asked Questions*\n\n";
+
+    Object.values(faqs).forEach((item, index) => {
+      faqMessage += `*Q${index + 1}:* ${item.question}\n`;
+      faqMessage += `*A:* ${item.answer}\n\n`;
+    });
+
+    bot.sendMessage(chatId, faqMessage, { parse_mode: "Markdown" });
+  } catch (error) {
+    console.error("Error fetching FAQs:", error);
+    bot.sendMessage(chatId, "❌ Failed to load FAQs. Please try again later.");
+  }
 });
+
 
 //Done
 bot.onText(/\/contacts/, (msg) => {
@@ -492,6 +503,135 @@ bot.onText(/\/suggest/, (msg) => {
   bot.sendMessage(msg.chat.id, "Welcome to Covenant University Telegram Bot");
 });
 
+// Command to view lost and found items
+bot.onText(/\/view_lost_and_found/, async (msg) => {
+  const chatId = msg.chat.id;
+  const db = admin.database();
+
+  try {
+    const snapshot = await db.ref("lost_and_found").once("value");
+    const items = snapshot.val();
+
+    if (!items) {
+      return bot.sendMessage(chatId, "📭 No lost and found items available at the moment.");
+    }
+
+    let message = "🔍 *Lost and Found Items:*\n\n";
+    let itemCount = 0;
+
+    Object.values(items).forEach((item, index) => {
+      itemCount++;
+      message += `*Item ${itemCount}:*\n📸 Picture: [Click to View](https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${item.picture})\n📝 Description: ${item.description}\n\n`;
+    });
+
+    if (itemCount === 0) {
+      message = "📭 No lost and found items available.";
+    }
+
+    bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+  } catch (error) {
+    console.error("Error fetching lost and found items:", error);
+    bot.sendMessage(chatId, "❌ Couldn't load lost and found items. Please try again.");
+  }
+});
+
+// Command to view lost and found items
+bot.onText(/\/lost_and_found/, async (msg) => {
+  const chatId = msg.chat.id;
+  const db = admin.database();
+
+  try {
+    const snapshot = await db.ref("lost_and_found").once("value");
+    const items = snapshot.val();
+
+    if (!items) {
+      return bot.sendMessage(chatId, "📭 No lost and found items available at the moment.");
+    }
+
+    let message = "🔍 *Lost and Found Items:*\n\n";
+    let itemCount = 0;
+
+    Object.values(items).forEach((item, index) => {
+      itemCount++;
+      message += `*Item ${itemCount}:*\n📸 Picture: [Click to View](https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${item.picture})\n📝 Description: ${item.description}\n\n`;
+    });
+
+    if (itemCount === 0) {
+      message = "📭 No lost and found items available.";
+    }
+
+    bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+  } catch (error) {
+    console.error("Error fetching lost and found items:", error);
+    bot.sendMessage(chatId, "❌ Couldn't load lost and found items. Please try again.");
+  }
+});
+
+
+
+// Command to send lost or found items
+bot.onText(/\/send_lost_and_found/, async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+
+  // Start a session for the user
+  addEventSessions[userId] = addEventSessions[userId] || {};
+  addEventSessions[userId].step = "awaiting_item_picture";  // Step 1: Wait for a picture
+
+  bot.sendMessage(
+    chatId,
+    "📸 Please send a picture of the lost or found item."
+  );
+});
+
+// Handle picture submission
+bot.on("photo", async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+  const photo = msg.photo[msg.photo.length - 1].file_id; // Get the largest size of the photo
+
+  const session = addEventSessions[userId];
+  if (!session || session.step !== "awaiting_item_picture") return;
+
+  // Save the picture for the item
+  session.itemPicture = photo;
+  session.step = "awaiting_item_description"; // Move to the next step
+
+  bot.sendMessage(chatId, "📝 Please provide a description of the item.");
+});
+
+// Handle item description submission
+bot.on("message", async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+  const text = msg.text;
+
+  const session = addEventSessions[userId];
+  if (!session) return;
+
+  if (session.step === "awaiting_item_description") {
+    // Save the description of the item
+    session.itemDescription = text;
+    session.step = "completed"; // End the session
+
+    // Save the item to Firebase
+    const itemRef = admin.database().ref("lost_and_found").push();
+    const newItem = {
+      userId,
+      picture: session.itemPicture,
+      description: session.itemDescription,
+      timestamp: Date.now(),
+    };
+    await itemRef.set(newItem);
+
+    bot.sendMessage(chatId, "✅ Your lost/found item has been submitted!");
+
+    // Reset session for the user
+    delete addEventSessions[userId];
+  }
+});
+
+
 //Done
 bot.onText(/\/timetable/, (msg) => {
   const chatId = msg.chat.id;
@@ -530,12 +670,27 @@ bot.onText(/\/view_events/, async (msg) => {
       return bot.sendMessage(chatId, "📭 No events available at the moment.");
     }
 
-    let message = "📅 *Upcoming Events:*\n\n";
+    // Get current date and calculate the start and end of the week (Monday to Sunday)
+    const now = new Date();
+    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 1)); // Monday
+    const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 7)); // Sunday
+
+    let message = "📅 *Upcoming Events This Week:*\n\n";
+    let eventCount = 0;
+
     Object.values(events).forEach((event, index) => {
-      message += `*${index + 1}. ${event.title}*\n📖 ${
-        event.description
-      }\n🗓 Date: ${event.date}\n\n`;
+      const eventDate = new Date(event.date);
+
+      // Check if the event is within the current week
+      if (eventDate >= startOfWeek && eventDate <= endOfWeek) {
+        eventCount++;
+        message += `*${eventCount}. ${event.title}*\n📖 ${event.description}\n🗓 Date: ${event.date}\n\n`;
+      }
     });
+
+    if (eventCount === 0) {
+      message = "📭 No events available for this week.";
+    }
 
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
@@ -544,7 +699,7 @@ bot.onText(/\/view_events/, async (msg) => {
   }
 });
 
-//Done
+
 bot.onText(/\/events/, async (msg) => {
   const chatId = msg.chat.id;
   const db = admin.database();
@@ -557,12 +712,27 @@ bot.onText(/\/events/, async (msg) => {
       return bot.sendMessage(chatId, "📭 No events available at the moment.");
     }
 
-    let message = "📅 *Upcoming Events:*\n\n";
+    // Get current date and calculate the start and end of the week (Monday to Sunday)
+    const now = new Date();
+    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 1)); // Monday
+    const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 7)); // Sunday
+
+    let message = "📅 *Upcoming Events This Week:*\n\n";
+    let eventCount = 0;
+
     Object.values(events).forEach((event, index) => {
-      message += `*${index + 1}. ${event.title}*\n📖 ${
-        event.description
-      }\n🗓 Date: ${event.date}\n\n`;
+      const eventDate = new Date(event.date);
+
+      // Check if the event is within the current week
+      if (eventDate >= startOfWeek && eventDate <= endOfWeek) {
+        eventCount++;
+        message += `*${eventCount}. ${event.title}*\n📖 ${event.description}\n🗓 Date: ${event.date}\n\n`;
+      }
     });
+
+    if (eventCount === 0) {
+      message = "📭 No events available for this week.";
+    }
 
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
@@ -571,8 +741,9 @@ bot.onText(/\/events/, async (msg) => {
   }
 });
 
-
 //Done
+const userAnnouncementStates = {};
+
 bot.onText(/\/announcements/, async (msg) => {
   const chatId = msg.chat.id;
 
@@ -608,9 +779,55 @@ bot.onText(/\/announcements/, async (msg) => {
   }
 });
 
+bot.onText(/\/more/, async (msg) => {
+  const chatId = msg.chat.id;
+  const state = userAnnouncementStates[chatId];
+
+  if (!state || !state.lastTimestamp) {
+    return bot.sendMessage(chatId, "❗ Please use /announcements first.");
+  }
+
+  try {
+    const db = admin.database();
+    const ref = db.ref("announcements");
+
+    const snapshot = await ref
+      .orderByChild("timestamp")
+      .endAt(state.lastTimestamp - 1)
+      .limitToLast(10)
+      .once("value");
+
+    const announcements = snapshot.val();
+
+    if (announcements) {
+      const announcementArray = Object.values(announcements).sort(
+        (a, b) => b.timestamp - a.timestamp
+      );
+
+      let text = "*More Announcements:*\n\n";
+      announcementArray.forEach((a) => {
+        text += `📅 ${new Date(a.timestamp).toLocaleString()}\n`;
+        text += `${a.message}\n\n`;
+      });
+
+      // Update state
+      state.lastTimestamp =
+        announcementArray[announcementArray.length - 1].timestamp;
+      userAnnouncementStates[chatId] = state;
+
+      bot.sendMessage(chatId, text, { parse_mode: "Markdown" });
+    } else {
+      bot.sendMessage(chatId, "✅ You've reached the end of announcements.");
+    }
+  } catch (err) {
+    console.error(err);
+    bot.sendMessage(chatId, "❌ Could not load more announcements.");
+  }
+});
+
 //Admin Commands
 //Done
-bot.onText(/\/admin/, (msg) => {
+bot.onText(/\/admin_help/, (msg) => {
   const adminMessage = `
 *🔧 Admin Commands:*
 
@@ -672,19 +889,97 @@ bot.onText(/\/add_admin (\S+)/, async (msg, match) => {
   }
 });
 
-const adminStates = {}; // Track admin input state
+const adminStates = {}; // keep track of admins adding FAQs
+
+bot.onText(/\/add_faq/, (msg) => {
+  const chatId = msg.chat.id;
+
+  // TODO: Optionally verify admin identity here
+
+  adminStates[chatId] = { step: "awaiting_question" };
+
+  bot.sendMessage(chatId, "📝 Please send the FAQ *question*.");
+});
+
+bot.on("message", async (msg) => {
+  const chatId = msg.chat.id;
+
+  // Skip if this message is a command
+  if (msg.text.startsWith("/")) return;
+
+  const state = adminStates[chatId];
+
+  if (!state) return;
+
+  if (state.step === "awaiting_question") {
+    state.question = msg.text;
+    state.step = "awaiting_answer";
+    bot.sendMessage(chatId, "✅ Got it. Now send the *answer*.");
+  } else if (state.step === "awaiting_answer") {
+    const db = admin.database();
+    const faqRef = db.ref("faqs").push();
+
+    try {
+      await faqRef.set({
+        question: state.question,
+        answer: msg.text,
+        timestamp: Date.now(),
+      });
+
+      bot.sendMessage(chatId, "✅ FAQ added successfully.");
+    } catch (error) {
+      console.error("Error saving FAQ:", error);
+      bot.sendMessage(chatId, "❌ Failed to save FAQ. Please try again.");
+    }
+
+    delete adminStates[chatId];
+  }
+});
+
 
 //Done
+
+// Command to start announcement
 bot.onText(/\/send_announcement/, (msg) => {
   const chatId = msg.chat.id;
 
-  // Ask for the announcement content
   bot.sendMessage(
     chatId,
     "📢 Please type the announcement message you'd like to send to all users:"
   );
 
   adminStates[chatId] = "awaiting_announcement";
+});
+
+// Handle the actual announcement message
+bot.on("message", async (msg) => {
+  const chatId = msg.chat.id;
+  const text = msg.text;
+
+  // Avoid processing the command itself again
+  if (text.toLowerCase().startsWith("/send_announcement")) return;
+
+  if (adminStates[chatId] === "awaiting_announcement") {
+    const db = admin.database();
+    const announcementsRef = db.ref("announcements");
+
+    const newAnnouncement = {
+      message: text,
+      timestamp: Date.now(),
+      from: msg.from.username || msg.from.first_name || "Admin",
+    };
+
+    try {
+      await announcementsRef.push(newAnnouncement);
+
+      bot.sendMessage(chatId, "✅ Announcement saved successfully.");
+    } catch (error) {
+      console.error("❌ Error saving announcement:", error);
+      bot.sendMessage(chatId, "❌ Failed to save announcement.");
+    }
+
+    delete adminStates[chatId]; // Clear state
+  }
 });
 
 //For the send announcement command
@@ -737,6 +1032,7 @@ bot.onText(/\/add_user/, (msg) => {
 const addEventSessions = {};
 
 //Done
+// Start the add_event flow
 bot.onText(/\/add_event/, (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
@@ -751,7 +1047,7 @@ bot.onText(/\/add_event/, (msg) => {
   );
 });
 
-//Event message
+//Done
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
@@ -776,21 +1072,55 @@ bot.on("message", async (msg) => {
   }
 
   if (session.step === "awaiting_date") {
+    // Check if the date is in the correct format (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(text)) {
+      return bot.sendMessage(
+        chatId,
+        "❌ The date format is invalid. Please use YYYY-MM-DD format (e.g., 2025-04-22)."
+      );
+    }
+
+    // Check if the date is valid
+    const eventDate = new Date(text);
+    if (eventDate.toString() === "Invalid Date") {
+      return bot.sendMessage(
+        chatId,
+        "❌ The date you entered is not a valid date. Please enter a valid date (format: YYYY-MM-DD)."
+      );
+    }
+
     session.date = text;
 
-    // Save to Firebase
+    // Save event to Firebase
     const eventRef = admin.database().ref("events").push();
-    await eventRef.set({
+    const newEvent = {
       title: session.title,
       description: session.description,
       date: session.date,
-    });
+      timestamp: Date.now(),
+    };
+    await eventRef.set(newEvent);
 
     bot.sendMessage(chatId, "✅ Event has been added successfully!");
+
+    // Broadcast event to all users
+    const usersRef = admin.database().ref("users");
+    const usersSnapshot = await usersRef.once("value");
+    const users = usersSnapshot.val();
+
+    if (users) {
+      const eventMessage = `📢 *New Event Added!*\n\n🗓 *${newEvent.title}*\n📅 ${newEvent.date}\n\n${newEvent.description}`;
+      Object.keys(users).forEach((userId) => {
+        bot.sendMessage(userId, eventMessage, { parse_mode: "Markdown" });
+      });
+    }
 
     delete addEventSessions[userId];
   }
 });
+
+
 
 //Not Done
 bot.onText(/\/update_contacts/, (msg) => {
@@ -838,6 +1168,23 @@ bot.onText(/\/create_poll/, async (msg) => {
     "✅ The poll announcement has been sent to all users."
   );
 });
+
+bot.on("message", async (msg) => {
+  const chatId = msg.chat.id;
+  const messageId = msg.message_id;
+  const text = msg.text;
+
+  // Skip if it's a command
+  if (!text || text.startsWith("/")) return;
+
+  // Set timeout to delete message after 5 minutes (300,000 ms)
+  setTimeout(() => {
+    bot.deleteMessage(chatId, messageId).catch((err) => {
+      console.error("❌ Error deleting message:", err.message);
+    });
+  }, 300000); // 5 minutes in milliseconds
+});
+
 
 //Callback Query
 bot.on("callback_query", (callbackQuery) => {

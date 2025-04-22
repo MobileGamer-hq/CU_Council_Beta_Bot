@@ -10,9 +10,12 @@ const commands = [
   { command: "/timetable", description: "View your timetable for the semester" },
   { command: "/suggest", description: "Send a suggestion or idea to the council" },
   { command: "/faq", description: "Get answers to common questions" },
-  { command: "/poll", description: "Participate in ongoing polls or vote on issues" },
-  { command: "/fun", description: "Get daily quotes, fun facts, or trivia" },
+  // { command: "/poll", description: "Participate in ongoing polls or vote on issues" },
+  // { command: "/fun", description: "Get daily quotes, fun facts, or trivia" },
+  { command: "/send_lost_and_found", description: "Submit a lost or found item (send a picture and description)" },
+  { command: "/lost_and_found", description: "View lost and found items with pictures and descriptions" },
 ];
+
 
 
 const adminCommands = [
@@ -39,6 +42,8 @@ const adminCommands = [
   { command: "/update", description: "Update general data" },
   { command: "/update_contact", description: "Update a single contact" },
   { command: "/update_contacts", description: "Update all contacts" },
+
+  {command: "/add_faq", description: "Add a new FAQ entry"},
 ];
 
 
