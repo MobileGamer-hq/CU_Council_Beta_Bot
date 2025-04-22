@@ -12,7 +12,7 @@ const commands = [
   { command: "/faq", description: "Get answers to common questions" },
   // { command: "/poll", description: "Participate in ongoing polls or vote on issues" },
   // { command: "/fun", description: "Get daily quotes, fun facts, or trivia" },
-  { command: "/send_lost_and_found", description: "Submit a lost or found item (send a picture and description)" },
+  { command: "/submit_lost_and_found", description: "Submit a lost or found item (send a picture and description)" },
   { command: "/lost_and_found", description: "View lost and found items with pictures and descriptions" },
 ];
 

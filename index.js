@@ -3,6 +3,9 @@ const TelegramBot = require("node-telegram-bot-api");
 
 const path = require("path");
 const fs = require("fs");
+const csv = require('csv-parser');
+const cron = require('node-cron');
+
 const { commands, adminCommands } = require("./data/commands");
 const admin = require("./utilities/firebase"); // Import the firebase admin SDK
 const {
@@ -570,7 +573,7 @@ bot.onText(/\/lost_and_found/, async (msg) => {
 
 
 // Command to send lost or found items
-bot.onText(/\/send_lost_and_found/, async (msg) => {
+bot.onText(/\/submit_lost_and_found/, async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
 
@@ -600,7 +603,6 @@ bot.on("photo", async (msg) => {
   bot.sendMessage(chatId, "📝 Please provide a description of the item.");
 });
 
-// Handle item description submission
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
@@ -626,9 +628,58 @@ bot.on("message", async (msg) => {
 
     bot.sendMessage(chatId, "✅ Your lost/found item has been submitted!");
 
+    // Fetch the list of admin users from Firebase
+    const adminsRef = admin.database().ref("admins");
+    const adminsSnapshot = await adminsRef.once("value");
+    const admins = adminsSnapshot.val();
+
+    if (admins) {
+      // Send item details to each admin
+      const itemMessage = `📢 *New Lost/Found Item Submitted:*\n\nDescription: ${newItem.description}\n\nItem Picture: ${newItem.picture ? newItem.picture : "No picture provided"}\n\nSubmitted by User ID: ${userId}`;
+
+      Object.keys(admins).forEach((adminId) => {
+        bot.sendMessage(adminId, itemMessage, { parse_mode: "Markdown" });
+      });
+    }
+
     // Reset session for the user
     delete addEventSessions[userId];
   }
+});
+
+
+const events = [];
+
+// Load events data from CSV file
+fs.createReadStream('./files/events.csv') // Path to your CSV file
+  .pipe(csv())
+  .on('data', (row) => {
+    events.push(row);
+  })
+  .on('end', () => {
+    console.log('CSV data loaded');
+  });
+
+// Function to format the event data into a table
+function formatEventTable(events) {
+  const header = `| S/N | Event Name | Date | Time | Venue | Event Type |`;
+  const separator = `| --- | --- | --- | --- | --- | --- |`;
+  const rows = events
+    .map((event) => {
+      return `| ${event['S/N']} | ${event['Event Name']} | ${event['Date']} | ${event['Time']} | ${event['Venue']} | ${event['Event Type']} |`;
+    })
+    .join('\n');
+
+  return `${header}\n${separator}\n${rows}`;
+}
+
+// Respond to /semester_events command
+bot.onText(/\/semester_events/, (msg) => {
+  // Format the events data into a table
+  const eventTable = formatEventTable(events);
+
+  // Send the formatted event table to the user
+  bot.sendMessage(msg.chat.id, `Here are the upcoming semester events:\n\n${eventTable}`, { parse_mode: 'Markdown' });
 });
 
 
@@ -970,17 +1021,35 @@ bot.on("message", async (msg) => {
     };
 
     try {
+      // Save the announcement to Firebase
       await announcementsRef.push(newAnnouncement);
 
+      // Send a success message to the admin
       bot.sendMessage(chatId, "✅ Announcement saved successfully.");
+
+      // Retrieve users from Firebase and send the announcement
+      const usersRef = db.ref("users");
+      const usersSnapshot = await usersRef.once("value");
+      const users = usersSnapshot.val();
+
+      if (users) {
+        // Send the announcement to all users
+        Object.keys(users).forEach((userId) => {
+          const userChatId = users[userId].chatId; // Assuming the user object has a `chatId` property
+          bot.sendMessage(userChatId, `📢 *Announcement from ${newAnnouncement.from}:*\n\n${newAnnouncement.message}`, { parse_mode: "Markdown" });
+        });
+      }
+
     } catch (error) {
       console.error("❌ Error saving announcement:", error);
       bot.sendMessage(chatId, "❌ Failed to save announcement.");
     }
 
-    delete adminStates[chatId]; // Clear state
+    // Clear the admin's state
+    delete adminStates[chatId];
   }
 });
+
 
 //For the send announcement command
 bot.on("message", async (msg) => {
@@ -1242,6 +1311,54 @@ bot.on("callback_query", (callbackQuery) => {
 
   // Acknowledge the callback
   bot.answerCallbackQuery(callbackQuery.id);
+});
+
+
+// Function to send random message to a user
+function sendRandomMessage(chatId, messageList) {
+  const randomIndex = Math.floor(Math.random() * messageList.length);
+  const message = messageList[randomIndex];
+  bot.sendMessage(chatId, message);
+}
+
+// Fetch users from Firebase
+async function getUsersFromFirebase() {
+  const usersRef = admin.database().ref("users");
+  const usersSnapshot = await usersRef.once("value");
+  return usersSnapshot.val(); // Return users object
+}
+
+// Send random morning message at 8 AM
+cron.schedule('0 8 * * *', async () => {
+  console.log("Sending morning messages to all users...");
+  const users = await getUsersFromFirebase();
+  if (users) {
+    Object.keys(users).forEach((userId) => {
+      sendRandomMessage(userId, morningMessages);
+    });
+  }
+});
+
+// Send random midday message at 12 PM
+cron.schedule('0 12 * * *', async () => {
+  console.log("Sending midday messages to all users...");
+  const users = await getUsersFromFirebase();
+  if (users) {
+    Object.keys(users).forEach((userId) => {
+      sendRandomMessage(userId, midDayMessages);
+    });
+  }
+});
+
+// Send random evening message at 8 PM
+cron.schedule('0 20 * * *', async () => {
+  console.log("Sending evening messages to all users...");
+  const users = await getUsersFromFirebase();
+  if (users) {
+    Object.keys(users).forEach((userId) => {
+      sendRandomMessage(userId, eveningMessages);
+    });
+  }
 });
 
 // --- Express Server Setup ---
