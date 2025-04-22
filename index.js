@@ -3,6 +3,7 @@ const TelegramBot = require("node-telegram-bot-api");
 
 const path = require("path");
 const fs = require("fs");
+const moment = require("moment"); // To handle date comparison more easily
 const csv = require("csv-parser");
 const cron = require("node-cron");
 
@@ -163,7 +164,7 @@ bot.on("message", async (msg) => {
 
         // Check if the user is an admin and update the bot's commands accordingly
         if (isAdmin) {
-          await bot.setMyCommands(adminCommands);
+          await bot.setMyCommands([...adminCommands, ...commands]);
           return bot.sendMessage(
             chatId,
             "🔐 Welcome Admin! You now have access to admin commands."
@@ -685,13 +686,69 @@ bot.onText(/\/semester_events/, async (msg) => {
   const chatId = msg.chat.id;
 
   if (events.length === 0) {
-    bot.sendMessage(chatId, "⚠️ Events are still loading. Please try again in a few seconds.");
+    bot.sendMessage(
+      chatId,
+      "⚠️ Events are still loading. Please try again in a few seconds."
+    );
     return;
   }
 
-  bot.sendMessage(chatId, "Here are the upcoming semester events:", { parse_mode: "Markdown" });
+  bot.sendMessage(chatId, "Here are the upcoming semester events:", {
+    parse_mode: "Markdown",
+  });
 
   for (const event of events) {
+    const message = formatSingleEvent(event);
+    await bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+  }
+});
+
+// Function to filter events for the current month
+function getMonthlyEvents(events) {
+  const currentMonth = moment().format("MMMM"); // Current month in full format (e.g., 'April')
+
+  return events.filter((event) => {
+    const eventDate = moment(event["Date"], "Do MMMM, YYYY"); // Format the event's date
+    return eventDate.format("MMMM") === currentMonth; // Compare the event's month with the current month
+  });
+}
+
+// Function to format individual event details
+function formatSingleEvent(event) {
+  return `
+    📅 *Event Name*: ${event["Event Name"]}
+    🗓 *Date*: ${event["Date"]}
+    🕑 *Time*: ${event["Time"] || "Not yet determined"}
+    📍 *Venue*: ${event["Venue"]}
+    🏷 *Event Type*: ${event["Event Type"]}
+  `;
+}
+
+// Respond to /monthly_events command
+bot.onText(/\/monthly_events/, async (msg) => {
+  const chatId = msg.chat.id;
+
+  if (events.length === 0) {
+    bot.sendMessage(
+      chatId,
+      "⚠️ Events are still loading. Please try again in a few seconds."
+    );
+    return;
+  }
+
+  const monthlyEvents = getMonthlyEvents(events);
+
+  if (monthlyEvents.length === 0) {
+    bot.sendMessage(chatId, "⚠️ No events found for this month.");
+    return;
+  }
+
+  bot.sendMessage(chatId, "Here are the upcoming events for this month:", {
+    parse_mode: "Markdown",
+  });
+
+  // Send each event one by one
+  for (const event of monthlyEvents) {
     const message = formatSingleEvent(event);
     await bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   }
