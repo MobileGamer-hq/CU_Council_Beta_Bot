@@ -1001,14 +1001,32 @@ bot.onText(/\/add_admin (\S+)/, async (msg, match) => {
   const addedUser = await addAdminByMatricNumber(matricNumber);
 
   if (addedUser) {
+    // Notify the current admin
     bot.sendMessage(
       chatId,
       `✅ Admin added successfully:\n\nName: ${addedUser.first_name} ${addedUser.last_name}\nMatric Number: ${addedUser.matric_number}`
     );
+
+    // Notify the newly added admin
+    const newAdminChatId = addedUser.chatId; // Assuming chatId is stored for the user
+    bot.sendMessage(
+      newAdminChatId,
+      `🎉 Congratulations! You are now an admin. You can now use admin commands to manage the bot.`
+    );
+
+    // Update the new admin's commands
+    const newAdminCommands = [
+      ...adminCommands, // Existing admin commands
+      ...commands // Additional commands specific to new admins if any
+    ];
+
+    await bot.setMyCommands(newAdminCommands);
+
   } else {
     bot.sendMessage(chatId, "⚠️ No user found with this matric number.");
   }
 });
+
 
 const adminStates = {}; // keep track of admins adding FAQs
 
