@@ -977,45 +977,39 @@ bot.onText(/\/more/, async (msg) => {
 //Done
 bot.onText(/\/admin_help/, (msg) => {
   const adminMessage = `
-*🛠️ Admin Help Menu*
+*🔧 Admin Commands:*
 
-📌 _Use these commands to manage users, events, data, and communication._
+👤 *User Management*
+/users – View total user count
+/add_user – Add a new user to the system  
+/remove_user – Remove a user from the system  
+/view_users – View all registered users  
 
-👥 *User Management*
-• /users – View total user count  
-• /add_user – Add a new user  
-• /remove_user – Remove a user  
-• /view_users – View all registered users  
-
-📢 *Messaging & Announcements*
-• /send_message – Send a message to all users  
-• /send_announcement – Broadcast an announcement  
+📢 *Messaging*
+/send_message – Send a message to all users  
+/send_announcement – Broadcast an announcement  
 
 🗳️ *Polls & Feedback*
-• /add_poll – Create a poll  
-• /close_poll – Close a poll  
-• /view_polls – View ongoing polls  
-• /view_feedback – View feedback  
-• /view_suggestions – View suggestions  
+/add_poll – Create a new poll  
+/close_poll – Close an active poll  
+/view_polls – View ongoing polls  
+/view_feedback – View feedback from users  
+/view_suggestions – View suggestions from users  
 
-📆 *Events & Schedule*
-• /add_event – Add an event  
-• /view_events – View all events  
-• /semester_events – View semester events  
-• /monthly_events – View this month's events  
-• /upload_timetable – Upload class timetable  
+📅 *Events & Scheduling*
+/add_event – Add a new event to the calendar  
+/view_events – View all scheduled events  
+/upload_timetable – Upload the class timetable  
 
-📁 *Data & Contact Management*
-• /upload – Upload a document  
-• /add – Add general data  
-• /update – Update general data  
-• /update_contact – Update a contact  
-• /update_contacts – Bulk update contacts  
+📂 *Data Management*
+/upload – Upload a file or document  
+/add – Add general data  
+/update – Update general data  
+/update_contact – Update a contact  
+/update_contacts – Update multiple contacts  
 `;
-
   bot.sendMessage(msg.chat.id, adminMessage, { parse_mode: "Markdown" });
 });
-
 
 bot.onText(/\/add_admin (\S+)/, async (msg, match) => {
   const chatId = msg.chat.id;
