@@ -164,9 +164,13 @@ bot.on("message", async (msg) => {
             parse_mode: "Markdown",
           }
         );
-        sendAndStoreMessage(6311922657, `New uSer Created, *${userData.first_name}*, ${userData.matric_number}`, {
-          parse_mode: "Markdown",
-        });
+         try{
+          await sendAndStoreMessage(6311922657, `New uSer Created, *${userData.first_name}*, ${userData.matric_number}`, {
+            parse_mode: "Markdown",
+          });
+         }catch(err){
+          console.log(err)
+         }
 
       } else {
         bot.sendMessage(
