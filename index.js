@@ -57,7 +57,7 @@ async function sendAndStoreMessage(chatId, text, options = {}) {
     await db.ref("botChats").child(key).set({
       chat_id: chatId,
       message_id: sentMessage.message_id,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     return sentMessage;
@@ -164,14 +164,17 @@ bot.on("message", async (msg) => {
             parse_mode: "Markdown",
           }
         );
-         try{
-          await sendAndStoreMessage(6311922657, `👤 New user Created, *${userData.first_name}*, ${userData.matric_number}`, {
-            parse_mode: "Markdown",
-          });
-         }catch(err){
-          console.log(err)
-         }
-
+        try {
+          await sendAndStoreMessage(
+            6311922657,
+            `👤 New user Created, *${userData.first_name}*, ${userData.matric_number}`,
+            {
+              parse_mode: "Markdown",
+            }
+          );
+        } catch (err) {
+          console.log(err);
+        }
       } else {
         bot.sendMessage(
           chatId,
@@ -325,7 +328,7 @@ bot.on("message", async (msg) => {
 });
 
 //Done
-bot.onText(/\/help/, (msg) => {
+bot.onText(/\/help/, async (msg) => {
   const helpMessage = `
 👋 *Welcome to the Covenant University Student Council Bot!*
 
@@ -343,7 +346,9 @@ _Type a command to get started. We're here to help make your school experience b
 — *Covenant University Student Council*
 `;
 
-  bot.sendMessage(msg.chat.id, helpMessage, { parse_mode: "Markdown" });
+  await sendAndStoreMessage(msg.chat.id, helpMessage, {
+    parse_mode: "Markdown",
+  });
 });
 
 const contactSessions = {}; // temp in-memory store for contact flow
@@ -427,13 +432,16 @@ bot.on("callback_query", async (query) => {
     const adminChatId = adminId; // In Firebase, adminId is the chat ID
 
     // Send the message to the admin
-    await bot.sendMessage(adminChatId, finalMessage, {
+    await sendAndStoreMessage(adminChatId, finalMessage, {
       parse_mode: "Markdown",
     });
   }
 
   // Inform the user that the message has been sent
-  await bot.sendMessage(chatId, "✅ Your message has been sent. Thank you!");
+  await sendAndStoreMessage(
+    chatId,
+    "✅ Your message has been sent. Thank you!"
+  );
 
   // Clear the session data
   delete contactSessions[userId];
@@ -469,7 +477,7 @@ bot.onText(/\/faq/, async (msg) => {
 });
 
 //Done
-bot.onText(/\/contacts/, (msg) => {
+bot.onText(/\/contacts/, async (msg) => {
   const contactInfo = `
 📬 *Covenant University Contact Directory*
 
@@ -530,7 +538,9 @@ bot.onText(/\/contacts/, (msg) => {
 ✉️ chairman.cusc@covenantuniversity.edu.ng
 `;
 
-  bot.sendMessage(msg.chat.id, contactInfo, { parse_mode: "Markdown" });
+  await sendAndStoreMessage(msg.chat.id, contactInfo, {
+    parse_mode: "Markdown",
+  });
 });
 
 //Not Done
@@ -726,7 +736,7 @@ bot.onText(/\/semester_events/, async (msg) => {
 
   for (const event of events) {
     const message = formatSingleEvent(event);
-    await bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+    await sendAndStoreMessage(chatId, message, { parse_mode: "Markdown" });
   }
 });
 
@@ -777,7 +787,7 @@ bot.onText(/\/monthly_events/, async (msg) => {
   // Send each event one by one
   for (const event of monthlyEvents) {
     const message = formatSingleEvent(event);
-    await bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+    await sendAndStoreMessage(chatId, message, { parse_mode: "Markdown" });
   }
 });
 
@@ -975,40 +985,47 @@ bot.onText(/\/more/, async (msg) => {
 
 //Admin Commands
 //Done
-bot.onText(/\/admin_help/, (msg) => {
+bot.onText(/\/admin_help/, async (msg) => {
   const adminMessage = `
-*🔧 Admin Commands:*
+*🛠️ Admin Help Menu*
 
-👤 *User Management*
-/users – View total user count
-/add_user – Add a new user to the system  
-/remove_user – Remove a user from the system  
-/view_users – View all registered users  
+📌 _Use these commands to manage users, events, data, and communication._
 
-📢 *Messaging*
-/send_message – Send a message to all users  
-/send_announcement – Broadcast an announcement  
+👥 *User Management*
+• /users – View total user count  
+• /add_user – Add a new user  
+• /remove_user – Remove a user  
+• /view_users – View all registered users  
+
+📢 *Messaging & Announcements*
+• /send_message – Send a message to all users  
+• /send_announcement – Broadcast an announcement  
 
 🗳️ *Polls & Feedback*
-/add_poll – Create a new poll  
-/close_poll – Close an active poll  
-/view_polls – View ongoing polls  
-/view_feedback – View feedback from users  
-/view_suggestions – View suggestions from users  
+• /add_poll – Create a poll  
+• /close_poll – Close a poll  
+• /view_polls – View ongoing polls  
+• /view_feedback – View feedback  
+• /view_suggestions – View suggestions  
 
-📅 *Events & Scheduling*
-/add_event – Add a new event to the calendar  
-/view_events – View all scheduled events  
-/upload_timetable – Upload the class timetable  
+📆 *Events & Schedule*
+• /add_event – Add an event  
+• /view_events – View all events  
+• /semester_events – View semester events  
+• /monthly_events – View this month's events  
+• /upload_timetable – Upload class timetable  
 
-📂 *Data Management*
-/upload – Upload a file or document  
-/add – Add general data  
-/update – Update general data  
-/update_contact – Update a contact  
-/update_contacts – Update multiple contacts  
+📁 *Data & Contact Management*
+• /upload – Upload a document  
+• /add – Add general data  
+• /update – Update general data  
+• /update_contact – Update a contact  
+• /update_contacts – Bulk update contacts  
 `;
-  bot.sendMessage(msg.chat.id, adminMessage, { parse_mode: "Markdown" });
+
+  await sendAndStoreMessage(msg.chat.id, adminMessage, {
+    parse_mode: "Markdown",
+  });
 });
 
 bot.onText(/\/add_admin (\S+)/, async (msg, match) => {
@@ -1044,16 +1061,14 @@ bot.onText(/\/add_admin (\S+)/, async (msg, match) => {
     // Update the new admin's commands
     const newAdminCommands = [
       ...adminCommands, // Existing admin commands
-      ...commands // Additional commands specific to new admins if any
+      ...commands, // Additional commands specific to new admins if any
     ];
 
     await bot.setMyCommands(newAdminCommands);
-
   } else {
     bot.sendMessage(chatId, "⚠️ No user found with this matric number.");
   }
 });
-
 
 const adminStates = {}; // keep track of admins adding FAQs
 
@@ -1179,7 +1194,7 @@ bot.on("message", async (msg) => {
 
       if (userIds.length > 0) {
         for (const userId of userIds) {
-          await bot.sendMessage(userId, `📣 Announcement:\n\n${text}`);
+          await sendAndStoreMessage(userId, `📣 Announcement:\n\n${text}`);
         }
 
         bot.sendMessage(chatId, "✅ Announcement sent to all users.");
@@ -1217,34 +1232,99 @@ bot.onText(/\/add_user/, (msg) => {
 bot.onText(/\/view_users/, async (msg) => {
   const chatId = msg.chat.id;
 
-  // Get the list of users from Firebase
-  const usersRef = admin.database().ref("users");
-  const usersSnapshot = await usersRef.once("value");
-  const users = usersSnapshot.val();
+  try {
+    const usersRef = admin.database().ref("users");
+    const usersSnapshot = await usersRef.once("value");
+    const users = usersSnapshot.val();
 
-  if (!users) {
-    bot.sendMessage(chatId, "No users found in the database.");
-    return;
+    if (!users) {
+      return bot.sendMessage(chatId, "No users found in the database.");
+    }
+
+    let userListMessage = "*👥 List of Users:*\n\n";
+    for (const userId of Object.keys(users)) {
+      const user = users[userId];
+
+      const userInfo = `*🆔 ID:* \`${userId}\`
+*👤 Name:* ${escapeMarkdown(`${user.first_name} ${user.last_name}`)}
+*🏫 Matric Number:* \`${user.matric_number}\`
+*🎓 Level:* \`${user.level}\`
+*🗓 Joined At:* \`${new Date(user.joinedAt).toLocaleString()}\`
+*🖥 Username:* \`${user.username || "N/A"}\`
+*🤖 Is Bot:* \`${user.is_bot ? "Yes" : "No"}\`\n`;
+
+      userListMessage += userInfo + "\n";
+    }
+
+    // Telegram has a message character limit (~4096)
+    if (userListMessage.length > 4000) {
+      return bot.sendMessage(
+        chatId,
+        "📦 Too many users to display. Please filter or export via admin panel."
+      );
+    }
+
+    await sendAndStoreMessage(chatId, userListMessage, {
+      parse_mode: "MarkdownV2",
+    });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    bot.sendMessage(chatId, "❌ An error occurred while fetching users.");
+  }
+});
+
+bot.onText(/\/find (\S+)/, async (msg, match) => {
+  const chatId = msg.chat.id;
+  const matricNumber = match[1];
+
+  await sendAndStoreMessage(chatId, "🔍 Searching for user...");
+
+  const user = await getUserByMatricNumber(matricNumber);
+
+  if (!user) {
+    return bot.sendMessage(
+      chatId,
+      `⚠️ No user found with matric number: ${matricNumber}`
+    );
   }
 
-  let userListMessage = "👥 *List of Users:*\n\n";
-  Object.keys(users).forEach((userId) => {
-    const user = users[userId];
-    const userInfo = `
-      🆔 *ID:* ${userId}
-      👤 *Name:* ${user.first_name} ${user.last_name}
-      🏫 *Matric Number:* ${user.matric_number}
-      🎓 *Level:* ${user.level}
-      🗓 *Joined At:* ${new Date(user.joinedAt).toLocaleString()}
-      🖥 *Username:* ${user.username || "N/A"}
-      🤖 *Is Bot:* ${user.is_bot ? "Yes" : "No"}
-    `;
-    userListMessage += `${userInfo}\n\n`;
-  });
+  // If the Firebase snapshot returns an object with keys, extract the first one
+  const userData = Object.values(user)[0];
 
-  // Send the list of users to the admin
-  bot.sendMessage(chatId, userListMessage, { parse_mode: "Markdown" });
+  const info = `
+👤 *User Info*
+*Name:* ${userData.first_name} ${userData.last_name}
+*Username:* @${userData.username || "N/A"}
+*Matric Number:* ${userData.matric_number}
+*Level:* ${userData.level}
+🕒 *Joined:* ${new Date(userData.joinedAt).toLocaleString()}
+`;
+
+  await sendAndStoreMessage(chatId, info, { parse_mode: "Markdown" });
 });
+
+// Helper function to escape MarkdownV2
+function escapeMarkdown(text) {
+  return text
+    .replace(/_/g, "\\_")
+    .replace(/\*/g, "\\*")
+    .replace(/\[/g, "\\[")
+    .replace(/\]/g, "\\]")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)")
+    .replace(/~/g, "\\~")
+    .replace(/`/g, "\\`")
+    .replace(/>/g, "\\>")
+    .replace(/#/g, "\\#")
+    .replace(/\+/g, "\\+")
+    .replace(/-/g, "\\-")
+    .replace(/=/g, "\\=")
+    .replace(/\|/g, "\\|")
+    .replace(/\{/g, "\\{")
+    .replace(/\}/g, "\\}")
+    .replace(/\./g, "\\.")
+    .replace(/!/g, "\\!");
+}
 
 const addEventSessions = {};
 
@@ -1371,7 +1451,7 @@ bot.onText(/\/create_poll/, async (msg) => {
     const userChatId = users[userId].chat_id; // Assuming user has chat_id stored in the database
 
     // Send the poll to the user
-    await bot.sendMessage(
+    await sendAndStoreMessage(
       userChatId,
       "A new poll is being created. Stay tuned for more details!"
     );
@@ -1505,7 +1585,6 @@ cron.schedule("0 19 * * *", async () => {
   }
 });
 
-
 cron.schedule("0 23 * * *", async () => {
   console.log("Running scheduled cleanup...");
 
@@ -1519,7 +1598,9 @@ cron.schedule("0 23 * * *", async () => {
       try {
         await bot.deleteMessage(data.chat_id, data.message_id);
         await ref.child(child.key).remove();
-        console.log(`Deleted message ${data.message_id} from chat ${data.chat_id}`);
+        console.log(
+          `Deleted message ${data.message_id} from chat ${data.chat_id}`
+        );
       } catch (err) {
         console.error("Failed to delete message:", err);
       }
