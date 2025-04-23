@@ -14,6 +14,7 @@ const {
   addUser,
   getUser,
   addAdminByMatricNumber,
+  getUserByMatricNumber,
 } = require("./utilities/database");
 const faq = require("./data/faq");
 const {
