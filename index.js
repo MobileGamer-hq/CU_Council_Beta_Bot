@@ -165,7 +165,7 @@ bot.on("message", async (msg) => {
           }
         );
          try{
-          await sendAndStoreMessage(6311922657, `New uSer Created, *${userData.first_name}*, ${userData.matric_number}`, {
+          await sendAndStoreMessage(6311922657, `👤 New user Created, *${userData.first_name}*, ${userData.matric_number}`, {
             parse_mode: "Markdown",
           });
          }catch(err){
