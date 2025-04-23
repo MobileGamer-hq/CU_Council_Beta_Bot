@@ -57,7 +57,7 @@ async function sendAndStoreMessage(chatId, text, options = {}) {
     await db.ref("botChats").child(key).set({
       chat_id: chatId,
       message_id: sentMessage.message_id,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     return sentMessage;
@@ -164,14 +164,17 @@ bot.on("message", async (msg) => {
             parse_mode: "Markdown",
           }
         );
-         try{
-          await sendAndStoreMessage(6311922657, `👤 New user Created, *${userData.first_name}*, ${userData.matric_number}`, {
-            parse_mode: "Markdown",
-          });
-         }catch(err){
-          console.log(err)
-         }
-
+        try {
+          await sendAndStoreMessage(
+            6311922657,
+            `👤 New user Created, *${userData.first_name}*, ${userData.matric_number}`,
+            {
+              parse_mode: "Markdown",
+            }
+          );
+        } catch (err) {
+          console.log(err);
+        }
       } else {
         bot.sendMessage(
           chatId,
@@ -1044,16 +1047,14 @@ bot.onText(/\/add_admin (\S+)/, async (msg, match) => {
     // Update the new admin's commands
     const newAdminCommands = [
       ...adminCommands, // Existing admin commands
-      ...commands // Additional commands specific to new admins if any
+      ...commands, // Additional commands specific to new admins if any
     ];
 
     await bot.setMyCommands(newAdminCommands);
-
   } else {
     bot.sendMessage(chatId, "⚠️ No user found with this matric number.");
   }
 });
-
 
 const adminStates = {}; // keep track of admins adding FAQs
 
@@ -1214,6 +1215,36 @@ bot.onText(/\/add_user/, (msg) => {
   bot.sendMessage(msg.chat.id, "*Admin Panel*", opts);
 });
 
+bot.onText(/\/find (\S+)/, async (msg, match) => {
+  const chatId = msg.chat.id;
+  const matricNumber = match[1];
+
+  bot.sendMessage(chatId, "🔍 Searching for user...");
+
+  const user = await getUserByMatricNumber(matricNumber);
+
+  if (!user) {
+    return bot.sendMessage(
+      chatId,
+      `⚠️ No user found with matric number: ${matricNumber}`
+    );
+  }
+
+  // If the Firebase snapshot returns an object with keys, extract the first one
+  const userData = Object.values(user)[0];
+
+  const info = `
+👤 *User Info*
+*Name:* ${userData.first_name} ${userData.last_name}
+*Username:* @${userData.username || "N/A"}
+*Matric Number:* ${userData.matric_number}
+*Level:* ${userData.level}
+🕒 *Joined:* ${new Date(userData.joinedAt).toLocaleString()}
+`;
+
+  bot.sendMessage(chatId, info, { parse_mode: "Markdown" });
+});
+
 bot.onText(/\/view_users/, async (msg) => {
   const chatId = msg.chat.id;
 
@@ -1230,8 +1261,7 @@ bot.onText(/\/view_users/, async (msg) => {
     for (const userId of Object.keys(users)) {
       const user = users[userId];
 
-      const userInfo = 
-`*🆔 ID:* \`${userId}\`
+      const userInfo = `*🆔 ID:* \`${userId}\`
 *👤 Name:* ${escapeMarkdown(`${user.first_name} ${user.last_name}`)}
 *🏫 Matric Number:* \`${user.matric_number}\`
 *🎓 Level:* \`${user.level}\`
@@ -1239,12 +1269,15 @@ bot.onText(/\/view_users/, async (msg) => {
 *🖥 Username:* \`${user.username || "N/A"}\`
 *🤖 Is Bot:* \`${user.is_bot ? "Yes" : "No"}\`\n`;
 
-      userListMessage += userInfo + '\n';
+      userListMessage += userInfo + "\n";
     }
 
     // Telegram has a message character limit (~4096)
     if (userListMessage.length > 4000) {
-      return bot.sendMessage(chatId, "📦 Too many users to display. Please filter or export via admin panel.");
+      return bot.sendMessage(
+        chatId,
+        "📦 Too many users to display. Please filter or export via admin panel."
+      );
     }
 
     bot.sendMessage(chatId, userListMessage, { parse_mode: "MarkdownV2" });
@@ -1536,7 +1569,6 @@ cron.schedule("0 19 * * *", async () => {
   }
 });
 
-
 cron.schedule("0 23 * * *", async () => {
   console.log("Running scheduled cleanup...");
 
@@ -1550,7 +1582,9 @@ cron.schedule("0 23 * * *", async () => {
       try {
         await bot.deleteMessage(data.chat_id, data.message_id);
         await ref.child(child.key).remove();
-        console.log(`Deleted message ${data.message_id} from chat ${data.chat_id}`);
+        console.log(
+          `Deleted message ${data.message_id} from chat ${data.chat_id}`
+        );
       } catch (err) {
         console.error("Failed to delete message:", err);
       }
