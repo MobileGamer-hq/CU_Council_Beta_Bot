@@ -730,7 +730,7 @@ bot.onText(/\/semester_events/, async (msg) => {
 
   for (const event of events) {
     const message = formatSingleEvent(event);
-    await bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+    await sendAndStoreMessage(chatId, message, { parse_mode: "Markdown" });
   }
 });
 
@@ -774,7 +774,7 @@ bot.onText(/\/monthly_events/, async (msg) => {
     return;
   }
 
-  bot.sendMessage(chatId, "Here are the upcoming events for this month:", {
+  await sendAndStoreMessage(chatId, "Here are the upcoming events for this month:", {
     parse_mode: "Markdown",
   });
 
@@ -1258,7 +1258,10 @@ bot.onText(/\/view_users/, async (msg) => {
       return bot.sendMessage(chatId, "No users found in the database.");
     }
 
+    const MAX_LENGTH = 4000;
     let userListMessage = "*👥 List of Users:*\n\n";
+    let batch = [];
+
     for (const userId of Object.keys(users)) {
       const user = users[userId];
 
@@ -1268,25 +1271,30 @@ bot.onText(/\/view_users/, async (msg) => {
 *🎓 Level:* \`${user.level}\`
 *🗓 Joined At:* \`${new Date(user.joinedAt).toLocaleString()}\`
 *🖥 Username:* \`${user.username || "N/A"}\`
-*🤖 Is Bot:* \`${user.is_bot ? "Yes" : "No"}\`\n`;
+*🤖 Is Bot:* \`${user.is_bot ? "Yes" : "No"}\`\n\n`;
 
-      userListMessage += userInfo + "\n";
+      if (userListMessage.length + userInfo.length >= MAX_LENGTH) {
+        batch.push(userListMessage);
+        userListMessage = ""; // Reset for next batch
+      }
+
+      userListMessage += userInfo;
     }
 
-    // Telegram has a message character limit (~4096)
-    if (userListMessage.length > 4000) {
-      return bot.sendMessage(
-        chatId,
-        "📦 Too many users to display. Please filter or export via admin panel."
-      );
+    if (userListMessage.length > 0) {
+      batch.push(userListMessage); // push the last part
     }
 
-    bot.sendMessage(chatId, userListMessage, { parse_mode: "MarkdownV2" });
+    for (const part of batch) {
+      await sendAndStoreMessage(chatId, part, { parse_mode: "MarkdownV2" });
+    }
+
   } catch (error) {
     console.error("Error fetching users:", error);
     bot.sendMessage(chatId, "❌ An error occurred while fetching users.");
   }
 });
+
 
 // Helper function to escape MarkdownV2
 function escapeMarkdown(text) {
