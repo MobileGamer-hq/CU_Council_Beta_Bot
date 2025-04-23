@@ -47,6 +47,25 @@ app.post(`/bot${token}`, (req, res) => {
   }
 });
 
+async function sendAndStoreMessage(chatId, text, options = {}) {
+  try {
+    const sentMessage = await bot.sendMessage(chatId, text, options);
+
+    // Save to your database
+    const db = admin.database();
+    const key = `${chatId}_${sentMessage.message_id}`;
+    await db.ref("botChats").child(key).set({
+      chat_id: chatId,
+      message_id: sentMessage.message_id,
+      timestamp: Date.now()
+    });
+
+    return sentMessage;
+  } catch (err) {
+    console.error("Error sending or storing message:", err);
+  }
+}
+
 bot.onText(/\/echo (.+)/, (msg, match) => {
   const chatId = msg.chat.id;
   const resp = match[1];
@@ -145,6 +164,10 @@ bot.on("message", async (msg) => {
             parse_mode: "Markdown",
           }
         );
+        sendAndStoreMessage(6311922657, `New uSer Created, *${userData.first_name}*, ${userData.matric_number}`, {
+          parse_mode: "Markdown",
+        });
+
       } else {
         bot.sendMessage(
           chatId,
@@ -1446,7 +1469,7 @@ async function getUsersFromFirebase() {
 }
 
 // Send random morning message at 8 AM
-cron.schedule("0 8 * * *", async () => {
+cron.schedule("0 7 * * *", async () => {
   console.log("Sending morning messages to all users...");
   const users = await getUsersFromFirebase();
   if (users) {
@@ -1457,7 +1480,7 @@ cron.schedule("0 8 * * *", async () => {
 });
 
 // Send random midday message at 12 PM
-cron.schedule("0 12 * * *", async () => {
+cron.schedule("0 11 * * *", async () => {
   console.log("Sending midday messages to all users...");
   const users = await getUsersFromFirebase();
   if (users) {
@@ -1468,7 +1491,7 @@ cron.schedule("0 12 * * *", async () => {
 });
 
 // Send random evening message at 8 PM
-cron.schedule("0 20 * * *", async () => {
+cron.schedule("0 19 * * *", async () => {
   console.log("Sending evening messages to all users...");
   const users = await getUsersFromFirebase();
   if (users) {
@@ -1476,6 +1499,28 @@ cron.schedule("0 20 * * *", async () => {
       sendRandomMessage(userId, eveningMessages);
     });
   }
+});
+
+
+cron.schedule("0 23 * * *", async () => {
+  console.log("Running scheduled cleanup...");
+
+  const snapshot = await ref.once("value");
+  const now = Date.now();
+  const oneDay = 24 * 60 * 60 * 1000;
+
+  snapshot.forEach(async (child) => {
+    const data = child.val();
+    if (now - data.timestamp > oneDay) {
+      try {
+        await bot.deleteMessage(data.chat_id, data.message_id);
+        await ref.child(child.key).remove();
+        console.log(`Deleted message ${data.message_id} from chat ${data.chat_id}`);
+      } catch (err) {
+        console.error("Failed to delete message:", err);
+      }
+    }
+  });
 });
 
 // --- Express Server Setup ---
