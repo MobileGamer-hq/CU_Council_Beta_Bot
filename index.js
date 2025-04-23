@@ -1578,9 +1578,9 @@ cron.schedule("0 19 * * *", async () => {
   }
 });
 
-cron.schedule("0 23 * * *", async () => {
+cron.schedule("0 1 * * *", async () => {
   console.log("Running scheduled cleanup...");
-
+  const ref = admin.database().ref("botChats");
   const snapshot = await ref.once("value");
   const now = Date.now();
   const oneDay = 24 * 60 * 60 * 1000;
