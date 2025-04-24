@@ -331,12 +331,19 @@ bot.on("message", async (msg) => {
 //Done
 const ADMIN_IDS = [123456789, 987654321]; // Replace with actual Telegram user IDs of admins
 
-bot.onText(/\/help/, (msg) => {
+bot.onText(/\/help/, async (msg) => {
   const chatId = msg.chat.id;
-  const isAdmin = ADMIN_IDS.includes(msg.from.id);
 
-  if (isAdmin) {
-    const adminHelp = `
+  try {
+    // Get admin IDs from your database (adjust the path to where your admin IDs are stored)
+    const ref = admin.database().ref("admins"); // Assuming the admin IDs are stored under the "admins" key
+    const snapshot = await ref.once("value");
+
+    // Check if the message sender's ID is in the list of admin IDs
+    const isAdmin = snapshot.exists() && snapshot.val().includes(msg.from.id);
+
+    if (isAdmin) {
+      const adminHelp = `
 👋 *Welcome, Admin!*
 
 *🔧 Admin Commands:*
@@ -369,9 +376,9 @@ bot.onText(/\/help/, (msg) => {
 Admin commands let you manage users, events, broadcasts, FAQs, and more.  
 `;
 
-    bot.sendMessage(chatId, adminHelp, { parse_mode: "Markdown" });
-  } else {
-    const studentHelp = `
+      bot.sendMessage(chatId, adminHelp, { parse_mode: "Markdown" });
+    } else {
+      const studentHelp = `
 👋 *Welcome to the Covenant University Student Council Bot!*
 
 *Here are the commands you can use:*
@@ -405,7 +412,14 @@ Admin commands let you manage users, events, broadcasts, FAQs, and more.
 Student commands allow you to view and manage your personal information, events, suggestions, and more.  
 `;
 
-    bot.sendMessage(chatId, studentHelp, { parse_mode: "Markdown" });
+      bot.sendMessage(chatId, studentHelp, { parse_mode: "Markdown" });
+    }
+  } catch (error) {
+    console.error("Error fetching admin data:", error);
+    bot.sendMessage(
+      chatId,
+      "Sorry, there was an issue fetching the admin data."
+    );
   }
 });
 
@@ -1808,7 +1822,6 @@ cron.schedule("0 19 * * *", async () => {
     });
   }
 });
-
 
 cron.schedule("0 1 * * *", async () => {
   console.log("🧹 Running scheduled cleanup...");
