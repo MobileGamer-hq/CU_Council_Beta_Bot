@@ -336,78 +336,79 @@ bot.onText(/\/help/, async (msg) => {
     const snapshot = await admin.database().ref("admins").once("value");
     const adminList = snapshot.val() || {};
     const isAdmin = adminList[chatId];
-    
+    console.log(`Is The User An Admin: ${isAdmin}`);
+
     if (isAdmin) {
       const adminHelp = `
 👋 *Welcome, Admin!*
 
 *🔧 Admin Commands:*
 
-📊 *User Management*  
-/users – View total number of users  
-/view_users – View all registered users  
-/find – Find a user by their Matric number  
+*📊 User Management*  
+/users \\- View total number of users  
+/view\\_users \\- View all registered users  
+/find \\- Find a user by their Matric number  
 
-📢 *Messaging*  
-/send_message – Send a message to all users  
-/send_announcement – Broadcast an announcement  
+*📢 Messaging*  
+/send\\_message \\- Send a message to all users  
+/send\\_announcement \\- Broadcast an announcement  
 
-📅 *Events & Scheduling*  
-/add_event – Add a new event to the calendar  
-/view_events – List all upcoming events  
-/upload_timetable – Upload class timetable  
+*📅 Events & Scheduling*  
+/add\\_event \\- Add a new event to the calendar  
+/view\\_events \\- List all upcoming events  
+/upload\\_timetable \\- Upload class timetable  
 
-📂 *General Data*  
-/upload – Upload a document or resource  
-/add – Add general data  
-/update – Update general data  
-/update_contact – Update a single contact  
-/update_contacts – Update all contacts  
+*📂 General Data*  
+/upload \\- Upload a document or resource  
+/add \\- Add general data  
+/update \\- Update general data  
+/update\\_contact \\- Update a single contact  
+/update\\_contacts \\- Update all contacts  
 
-📚 *FAQ Management*  
-/add_faq – Add a new FAQ entry  
+*📚 FAQ Management*  
+/add\\_faq \\- Add a new FAQ entry  
 
-— *Admin Commands Overview*  
-Admin commands let you manage users, events, broadcasts, FAQs, and more.  
+\\-\\- *Admin Commands Overview*  
+Admin commands let you manage users, events, broadcasts, FAQs, and more.
 `;
 
-      bot.sendMessage(chatId, adminHelp, { parse_mode: "Markdown" });
+      bot.sendMessage(chatId, adminHelp, { parse_mode: "MarkdownV2" });
     } else {
       const studentHelp = `
 👋 *Welcome to the Covenant University Student Council Bot!*
 
 *Here are the commands you can use:*
 
-📚 *Personal Info*  
-/start – Register or initialize your session  
-/help – View available commands and features  
-/view_info – Check your registered information  
-/update_info – Update your profile information  
+*📚 Personal Info*  
+/start \\- Register or initialize your session  
+/help \\- View available commands and features  
+/view\\_info \\- Check your registered information  
+/update\\_info \\- Update your profile information  
 
-✉️ *Contact*  
-/contact – Send a message to the Student Council (you can stay anonymous)  
-/contacts – Get contact details for school offices  
+*✉️ Contact*  
+/contact \\- Send a message to the Student Council \\(you can stay anonymous\\)  
+/contacts \\- Get contact details for school offices  
 
-📅 *Events*  
-/events – See upcoming CU events  
-/announcements – View the latest updates from the Student Council  
-/timetable – View your timetable for the semester  
-/semester_events – View events for the current semester  
-/monthly_events – View events for the current month  
+*📅 Events*  
+/events \\- See upcoming CU events  
+/announcements \\- View the latest updates from the Student Council  
+/timetable \\- View your timetable for the semester  
+/semester\\_events \\- View events for the current semester  
+/monthly\\_events \\- View events for the current month  
 
-💡 *Suggestions & Feedback*  
-/suggest – Send a suggestion or idea to the council  
-/faq – Get answers to common questions  
+*💡 Suggestions & Feedback*  
+/suggest \\- Send a suggestion or idea to the council  
+/faq \\- Get answers to common questions  
 
-🔍 *Lost and Found*  
-/submit_lost_and_found – Submit a lost or found item (send a picture and description)  
-/lost_and_found – View lost and found items with pictures and descriptions  
+*🔍 Lost and Found*  
+/submit\\_lost\\_and\\_found \\- Submit a lost or found item \\(send a picture and description\\)  
+/lost\\_and\\_found \\- View lost and found items with pictures and descriptions  
 
-— *Student Commands Overview*  
-Student commands allow you to view and manage your personal information, events, suggestions, and more.  
+\\-\\- *Student Commands Overview*  
+Student commands allow you to view and manage your personal information, events, suggestions, and more.
 `;
 
-      bot.sendMessage(chatId, studentHelp, { parse_mode: "Markdown" });
+      bot.sendMessage(chatId, studentHelp, { parse_mode: "MarkdownV2" });
     }
   } catch (error) {
     console.error("Error fetching admin data:", error);
