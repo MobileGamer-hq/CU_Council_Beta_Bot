@@ -328,28 +328,15 @@ bot.on("message", async (msg) => {
   }
 });
 
-//Done
-const ADMIN_IDS = [123456789, 987654321]; // Replace with actual Telegram user IDs of admins
-
 bot.onText(/\/help/, async (msg) => {
   const chatId = msg.chat.id;
 
   try {
-    // Get admin IDs from your database
-    const ref = admin.database().ref("admins"); // Path to your admins data
-    const snapshot = await ref.once("value");
-
-    // Check if the snapshot exists and it's an array or an object with keys as admin IDs
-    const adminData = snapshot.val();
-
-    // If adminData is an object, extract its keys (admin IDs will be keys)
-    const adminIds = Array.isArray(adminData)
-      ? adminData
-      : Object.keys(adminData);
-
-    // Check if the message sender's ID is in the list of admin IDs
-    const isAdmin = adminIds.includes(String(msg.from.id)); // Ensure msg.from.id is a string for comparison
-
+    // Fetch admin list from Firebase
+    const snapshot = await admin.database().ref("admins").once("value");
+    const adminList = snapshot.val() || {};
+    const isAdmin = adminList[chatId];
+    
     if (isAdmin) {
       const adminHelp = `
 👋 *Welcome, Admin!*
