@@ -1787,6 +1787,13 @@ async function getUsersFromFirebase() {
   return usersSnapshot.val(); // Return users object
 }
 
+const cron = require("node-cron");
+
+cron.schedule("* * * * *", () => {
+  console.log("🕐 Cron heartbeat: ", new Date().toString());
+});
+
+
 // Send random morning message at 8 AM
 cron.schedule("0 7 * * *", async () => {
   console.log("Sending morning messages to all users...");
