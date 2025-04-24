@@ -340,75 +340,75 @@ bot.onText(/\/help/, async (msg) => {
 
     if (isAdmin) {
       const adminHelp = `
-👋 *Welcome, Admin!*
+👋 <b>Welcome, Admin!</b>
 
-*🔧 Admin Commands:*
+<b>🔧 Admin Commands:</b>
 
-*📊 User Management*  
-/users \\- View total number of users  
-/view\\_users \\- View all registered users  
-/find \\- Find a user by their Matric number  
+<b>📊 User Management</b><br/>
+/users – View total number of users<br/>
+/view_users – View all registered users<br/>
+/find – Find a user by their Matric number<br/><br/>
 
-*📢 Messaging*  
-/send\\_message \\- Send a message to all users  
-/send\\_announcement \\- Broadcast an announcement  
+<b>📢 Messaging</b><br/>
+/send_message – Send a message to all users<br/>
+/send_announcement – Broadcast an announcement<br/><br/>
 
-*📅 Events & Scheduling*  
-/add\\_event \\- Add a new event to the calendar  
-/view\\_events \\- List all upcoming events  
-/upload\\_timetable \\- Upload class timetable  
+<b>📅 Events & Scheduling</b><br/>
+/add_event – Add a new event to the calendar<br/>
+/view_events – List all upcoming events<br/>
+/upload_timetable – Upload class timetable<br/><br/>
 
-*📂 General Data*  
-/upload \\- Upload a document or resource  
-/add \\- Add general data  
-/update \\- Update general data  
-/update\\_contact \\- Update a single contact  
-/update\\_contacts \\- Update all contacts  
+<b>📂 General Data</b><br/>
+/upload – Upload a document or resource<br/>
+/add – Add general data<br/>
+/update – Update general data<br/>
+/update_contact – Update a single contact<br/>
+/update_contacts – Update all contacts<br/><br/>
 
-*📚 FAQ Management*  
-/add\\_faq \\- Add a new FAQ entry  
+<b>📚 FAQ Management</b><br/>
+/add_faq – Add a new FAQ entry<br/><br/>
 
-\\-\\- *Admin Commands Overview*  
+— <i>Admin Commands Overview</i><br/>
 Admin commands let you manage users, events, broadcasts, FAQs, and more.
 `;
 
-      bot.sendMessage(chatId, adminHelp, { parse_mode: "MarkdownV2" });
+      bot.sendMessage(chatId, adminHelp, { parse_mode: "HTML" });
     } else {
       const studentHelp = `
-👋 *Welcome to the Covenant University Student Council Bot!*
+👋 <b>Welcome to the Covenant University Student Council Bot!</b>
 
-*Here are the commands you can use:*
+<b>Here are the commands you can use:</b>
 
-*📚 Personal Info*  
-/start \\- Register or initialize your session  
-/help \\- View available commands and features  
-/view\\_info \\- Check your registered information  
-/update\\_info \\- Update your profile information  
+<b>📚 Personal Info</b><br/>
+/start – Register or initialize your session<br/>
+/help – View available commands and features<br/>
+/view_info – Check your registered information<br/>
+/update_info – Update your profile information<br/><br/>
 
-*✉️ Contact*  
-/contact \\- Send a message to the Student Council \\(you can stay anonymous\\)  
-/contacts \\- Get contact details for school offices  
+<b>✉️ Contact</b><br/>
+/contact – Send a message to the Student Council (you can stay anonymous)<br/>
+/contacts – Get contact details for school offices<br/><br/>
 
-*📅 Events*  
-/events \\- See upcoming CU events  
-/announcements \\- View the latest updates from the Student Council  
-/timetable \\- View your timetable for the semester  
-/semester\\_events \\- View events for the current semester  
-/monthly\\_events \\- View events for the current month  
+<b>📅 Events</b><br/>
+/events – See upcoming CU events<br/>
+/announcements – View the latest updates from the Student Council<br/>
+/timetable – View your timetable for the semester<br/>
+/semester_events – View events for the current semester<br/>
+/monthly_events – View events for the current month<br/><br/>
 
-*💡 Suggestions & Feedback*  
-/suggest \\- Send a suggestion or idea to the council  
-/faq \\- Get answers to common questions  
+<b>💡 Suggestions & Feedback</b><br/>
+/suggest – Send a suggestion or idea to the council<br/>
+/faq – Get answers to common questions<br/><br/>
 
-*🔍 Lost and Found*  
-/submit\\_lost\\_and\\_found \\- Submit a lost or found item \\(send a picture and description\\)  
-/lost\\_and\\_found \\- View lost and found items with pictures and descriptions  
+<b>🔍 Lost and Found</b><br/>
+/submit_lost_and_found – Submit a lost or found item (send a picture and description)<br/>
+/lost_and_found – View lost and found items with pictures and descriptions<br/><br/>
 
-\\-\\- *Student Commands Overview*  
+— <i>Student Commands Overview</i><br/>
 Student commands allow you to view and manage your personal information, events, suggestions, and more.
 `;
 
-      bot.sendMessage(chatId, studentHelp, { parse_mode: "MarkdownV2" });
+      bot.sendMessage(chatId, studentHelp, { parse_mode: "HTML" });
     }
   } catch (error) {
     console.error("Error fetching admin data:", error);
@@ -418,6 +418,7 @@ Student commands allow you to view and manage your personal information, events,
     );
   }
 });
+
 
 const contactSessions = {}; // temp in-memory store for contact flow
 
