@@ -1787,7 +1787,6 @@ async function getUsersFromFirebase() {
   return usersSnapshot.val(); // Return users object
 }
 
-const cron = require("node-cron");
 
 cron.schedule("* * * * *", () => {
   console.log("🕐 Cron heartbeat: ", new Date().toString());
