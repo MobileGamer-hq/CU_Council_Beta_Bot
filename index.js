@@ -335,12 +335,20 @@ bot.onText(/\/help/, async (msg) => {
   const chatId = msg.chat.id;
 
   try {
-    // Get admin IDs from your database (adjust the path to where your admin IDs are stored)
-    const ref = admin.database().ref("admins"); // Assuming the admin IDs are stored under the "admins" key
+    // Get admin IDs from your database
+    const ref = admin.database().ref("admins"); // Path to your admins data
     const snapshot = await ref.once("value");
 
+    // Check if the snapshot exists and it's an array or an object with keys as admin IDs
+    const adminData = snapshot.val();
+
+    // If adminData is an object, extract its keys (admin IDs will be keys)
+    const adminIds = Array.isArray(adminData)
+      ? adminData
+      : Object.keys(adminData);
+
     // Check if the message sender's ID is in the list of admin IDs
-    const isAdmin = snapshot.exists() && snapshot.val().includes(msg.from.id);
+    const isAdmin = adminIds.includes(String(msg.from.id)); // Ensure msg.from.id is a string for comparison
 
     if (isAdmin) {
       const adminHelp = `
