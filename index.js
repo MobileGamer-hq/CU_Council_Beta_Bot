@@ -328,11 +328,11 @@ bot.on("message", async (msg) => {
   }
 });
 
+
 bot.onText(/\/help/, async (msg) => {
   const chatId = msg.chat.id;
 
   try {
-    // Fetch admin list from Firebase
     const snapshot = await admin.database().ref("admins").once("value");
     const adminList = snapshot.val() || {};
     const isAdmin = adminList[chatId];
@@ -340,85 +340,85 @@ bot.onText(/\/help/, async (msg) => {
 
     if (isAdmin) {
       const adminHelp = `
-👋 <b>Welcome, Admin!</b>
+👋 *Welcome, Admin!*
 
-<b>🔧 Admin Commands:</b>
+*🔧 Admin Commands:*
 
-<b>📊 User Management</b><br/>
-/users – View total number of users<br/>
-/view_users – View all registered users<br/>
-/find – Find a user by their Matric number<br/><br/>
+📊 *User Management*  
+/users – View total number of users  
+/view_users – View all registered users  
+/find – Find a user by their Matric number  
 
-<b>📢 Messaging</b><br/>
-/send_message – Send a message to all users<br/>
-/send_announcement – Broadcast an announcement<br/><br/>
+📢 *Messaging*  
+/send_message – Send a message to all users  
+/send_announcement – Broadcast an announcement  
 
-<b>📅 Events & Scheduling</b><br/>
-/add_event – Add a new event to the calendar<br/>
-/view_events – List all upcoming events<br/>
-/upload_timetable – Upload class timetable<br/><br/>
+📅 *Events & Scheduling*  
+/add_event – Add a new event to the calendar  
+/view_events – List all upcoming events  
+/upload_timetable – Upload class timetable  
 
-<b>📂 General Data</b><br/>
-/upload – Upload a document or resource<br/>
-/add – Add general data<br/>
-/update – Update general data<br/>
-/update_contact – Update a single contact<br/>
-/update_contacts – Update all contacts<br/><br/>
+📂 *General Data*  
+/upload – Upload a document or resource  
+/add – Add general data  
+/update – Update general data  
+/update_contact – Update a single contact  
+/update_contacts – Update all contacts  
 
-<b>📚 FAQ Management</b><br/>
-/add_faq – Add a new FAQ entry<br/><br/>
+📚 *FAQ Management*  
+/add_faq – Add a new FAQ entry  
 
-— <i>Admin Commands Overview</i><br/>
+— *Admin Commands Overview*  
 Admin commands let you manage users, events, broadcasts, FAQs, and more.
 `;
 
-      bot.sendMessage(chatId, adminHelp, { parse_mode: "HTML" });
+      bot.sendMessage(chatId, escapeMarkdown(adminHelp), {
+        parse_mode: "MarkdownV2",
+      });
     } else {
       const studentHelp = `
-👋 <b>Welcome to the Covenant University Student Council Bot!</b>
+👋 *Welcome to the Covenant University Student Council Bot!*
 
-<b>Here are the commands you can use:</b>
+*Here are the commands you can use:*
 
-<b>📚 Personal Info</b><br/>
-/start – Register or initialize your session<br/>
-/help – View available commands and features<br/>
-/view_info – Check your registered information<br/>
-/update_info – Update your profile information<br/><br/>
+📚 *Personal Info*  
+/start – Register or initialize your session  
+/help – View available commands and features  
+/view_info – Check your registered information  
+/update_info – Update your profile information  
 
-<b>✉️ Contact</b><br/>
-/contact – Send a message to the Student Council (you can stay anonymous)<br/>
-/contacts – Get contact details for school offices<br/><br/>
+✉️ *Contact*  
+/contact – Send a message to the Student Council (you can stay anonymous)  
+/contacts – Get contact details for school offices  
 
-<b>📅 Events</b><br/>
-/events – See upcoming CU events<br/>
-/announcements – View the latest updates from the Student Council<br/>
-/timetable – View your timetable for the semester<br/>
-/semester_events – View events for the current semester<br/>
-/monthly_events – View events for the current month<br/><br/>
+📅 *Events*  
+/events – See upcoming CU events  
+/announcements – View the latest updates from the Student Council  
+/timetable – View your timetable for the semester  
+/semester_events – View events for the current semester  
+/monthly_events – View events for the current month  
 
-<b>💡 Suggestions & Feedback</b><br/>
-/suggest – Send a suggestion or idea to the council<br/>
-/faq – Get answers to common questions<br/><br/>
+💡 *Suggestions & Feedback*  
+/suggest – Send a suggestion or idea to the council  
+/faq – Get answers to common questions  
 
-<b>🔍 Lost and Found</b><br/>
-/submit_lost_and_found – Submit a lost or found item (send a picture and description)<br/>
-/lost_and_found – View lost and found items with pictures and descriptions<br/><br/>
+🔍 *Lost and Found*  
+/submit_lost_and_found – Submit a lost or found item (send a picture and description)  
+/lost_and_found – View lost and found items with pictures and descriptions  
 
-— <i>Student Commands Overview</i><br/>
+— *Student Commands Overview*  
 Student commands allow you to view and manage your personal information, events, suggestions, and more.
 `;
 
-      bot.sendMessage(chatId, studentHelp, { parse_mode: "HTML" });
+      bot.sendMessage(chatId, escapeMarkdown(studentHelp), {
+        parse_mode: "MarkdownV2",
+      });
     }
   } catch (error) {
     console.error("Error fetching admin data:", error);
-    bot.sendMessage(
-      chatId,
-      "Sorry, there was an issue fetching the admin data."
-    );
+    bot.sendMessage(chatId, "Sorry, there was an issue fetching the admin data.");
   }
 });
-
 
 const contactSessions = {}; // temp in-memory store for contact flow
 
