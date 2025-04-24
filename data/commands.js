@@ -23,18 +23,18 @@ const commands = [
 
 const adminCommands = [
   { command: "/users", description: "View total number of users" },
-  { command: "/add_user", description: "Add a new user to the system" },
-  { command: "/remove_user", description: "Remove a user from the system" },
+  // { command: "/add_user", description: "Add a new user to the system" },
   { command: "/view_users", description: "View all registered users" },
+  {command: "/find", description: "Find a user by their Matric number"},
 
   { command: "/send_message", description: "Send a message to all users" },
   { command: "/send_announcement", description: "Broadcast an announcement" },
 
-  { command: "/add_poll", description: "Create a new poll" },
-  { command: "/close_poll", description: "Close an active poll" },
-  { command: "/view_polls", description: "View ongoing polls" },
-  { command: "/view_feedback", description: "See feedback from users" },
-  { command: "/view_suggestions", description: "View user suggestions" },
+  // { command: "/add_poll", description: "Create a new poll" },
+  // { command: "/close_poll", description: "Close an active poll" },
+  // { command: "/view_polls", description: "View ongoing polls" },
+  // { command: "/view_feedback", description: "See feedback from users" },
+  // { command: "/view_suggestions", description: "View user suggestions" },
 
   { command: "/add_event", description: "Add a new event to the calendar" },
   { command: "/view_events", description: "List all upcoming events" },

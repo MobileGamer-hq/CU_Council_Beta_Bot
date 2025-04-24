@@ -329,31 +329,90 @@ bot.on("message", async (msg) => {
 });
 
 //Done
+const ADMIN_IDS = [123456789, 987654321]; // Replace with actual Telegram user IDs of admins
+
 bot.onText(/\/help/, (msg) => {
-  const helpMessage = `
-👋 *Welcome to the Covenant University Student Council Bot!*
+  const chatId = msg.chat.id;
+  const isAdmin = ADMIN_IDS.includes(msg.from.id);
 
-Here are the commands you can use:
+  if (isAdmin) {
+    const adminHelp = `
+👋 *Welcome, Admin!*
 
-📢 /announcements – View the latest updates from the Student Council  
-📅 /events – See upcoming school events and activities  
-💡 /suggest – Share your suggestions or ideas  
-❓ /faq – Get answers to common questions  
-✉️ /contact – Send a message to the Student Council (you can stay anonymous)
-📚 /help – Show this help message again
+*🔧 Admin Commands:*
 
-_Type a command to get started. We're here to help make your school experience better!_
+📊 *User Management*  
+/users – View total number of users  
+/view_users – View all registered users  
+/find – Find a user by their Matric number  
 
-— *Covenant University Student Council*
+📢 *Messaging*  
+/send_message – Send a message to all users  
+/send_announcement – Broadcast an announcement  
+
+📅 *Events & Scheduling*  
+/add_event – Add a new event to the calendar  
+/view_events – List all upcoming events  
+/upload_timetable – Upload class timetable  
+
+📂 *General Data*  
+/upload – Upload a document or resource  
+/add – Add general data  
+/update – Update general data  
+/update_contact – Update a single contact  
+/update_contacts – Update all contacts  
+
+📚 *FAQ Management*  
+/add_faq – Add a new FAQ entry  
+
+— *Admin Commands Overview*  
+Admin commands let you manage users, events, broadcasts, FAQs, and more.  
 `;
 
-  bot.sendMessage(msg.chat.id, helpMessage, { parse_mode: "Markdown" });
+    bot.sendMessage(chatId, adminHelp, { parse_mode: "Markdown" });
+  } else {
+    const studentHelp = `
+👋 *Welcome to the Covenant University Student Council Bot!*
+
+*Here are the commands you can use:*
+
+📚 *Personal Info*  
+/start – Register or initialize your session  
+/help – View available commands and features  
+/view_info – Check your registered information  
+/update_info – Update your profile information  
+
+✉️ *Contact*  
+/contact – Send a message to the Student Council (you can stay anonymous)  
+/contacts – Get contact details for school offices  
+
+📅 *Events*  
+/events – See upcoming CU events  
+/announcements – View the latest updates from the Student Council  
+/timetable – View your timetable for the semester  
+/semester_events – View events for the current semester  
+/monthly_events – View events for the current month  
+
+💡 *Suggestions & Feedback*  
+/suggest – Send a suggestion or idea to the council  
+/faq – Get answers to common questions  
+
+🔍 *Lost and Found*  
+/submit_lost_and_found – Submit a lost or found item (send a picture and description)  
+/lost_and_found – View lost and found items with pictures and descriptions  
+
+— *Student Commands Overview*  
+Student commands allow you to view and manage your personal information, events, suggestions, and more.  
+`;
+
+    bot.sendMessage(chatId, studentHelp, { parse_mode: "Markdown" });
+  }
 });
 
 const contactSessions = {}; // temp in-memory store for contact flow
 
 //Done
-bot.onText(/\/contact/, async (msg) => {
+bot.onText(/\/contact$/, async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
 
@@ -774,9 +833,13 @@ bot.onText(/\/monthly_events/, async (msg) => {
     return;
   }
 
-  await sendAndStoreMessage(chatId, "Here are the upcoming events for this month:", {
-    parse_mode: "Markdown",
-  });
+  await sendAndStoreMessage(
+    chatId,
+    "Here are the upcoming events for this month:",
+    {
+      parse_mode: "Markdown",
+    }
+  );
 
   // Send each event one by one
   for (const event of monthlyEvents) {
@@ -808,6 +871,25 @@ bot.onText(/\/timetable/, (msg) => {
       ],
     },
   });
+});
+
+//Done
+bot.onText(/\/handbook/, (msg) => {
+  const chatId = msg.chat.id;
+
+  const filePath = path.join(__dirname, "documents", "handbook.pdf");
+
+  // Check if the file exists
+  if (fs.existsSync(filePath)) {
+    bot.sendDocument(chatId, filePath, {
+      caption: "📘 Here is the Student Handbook.",
+    });
+  } else {
+    bot.sendMessage(
+      chatId,
+      "❌ Student handbook not found. Please try again later."
+    );
+  }
 });
 
 //Done
@@ -979,41 +1061,6 @@ bot.onText(/\/more/, async (msg) => {
 
 //Admin Commands
 //Done
-bot.onText(/\/admin_help/, (msg) => {
-  const adminMessage = `
-*🔧 Admin Commands:*
-
-👤 *User Management*
-/users – View total user count
-/add_user – Add a new user to the system  
-/remove_user – Remove a user from the system  
-/view_users – View all registered users  
-
-📢 *Messaging*
-/send_message – Send a message to all users  
-/send_announcement – Broadcast an announcement  
-
-🗳️ *Polls & Feedback*
-/add_poll – Create a new poll  
-/close_poll – Close an active poll  
-/view_polls – View ongoing polls  
-/view_feedback – View feedback from users  
-/view_suggestions – View suggestions from users  
-
-📅 *Events & Scheduling*
-/add_event – Add a new event to the calendar  
-/view_events – View all scheduled events  
-/upload_timetable – Upload the class timetable  
-
-📂 *Data Management*
-/upload – Upload a file or document  
-/add – Add general data  
-/update – Update general data  
-/update_contact – Update a contact  
-/update_contacts – Update multiple contacts  
-`;
-  bot.sendMessage(msg.chat.id, adminMessage, { parse_mode: "Markdown" });
-});
 
 bot.onText(/\/add_admin (\S+)/, async (msg, match) => {
   const chatId = msg.chat.id;
@@ -1104,8 +1151,85 @@ bot.on("message", async (msg) => {
   }
 });
 
-//Done
+const pendingMessages = {}; // Stores temporary message state for admins
 
+bot.onText(/\/send_message/, async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id.toString();
+
+  // Check if the sender is an admin
+  const isAdmin = await admin
+    .database()
+    .ref("admins")
+    .child(userId)
+    .once("value");
+  if (!isAdmin.exists()) {
+    return bot.sendMessage(
+      chatId,
+      "❌ You are not authorized to use this command."
+    );
+  }
+
+  pendingMessages[userId] = true;
+  bot.sendMessage(
+    chatId,
+    "📝 Please type the message you want to send to all users:"
+  );
+});
+
+// Listen for replies (after command was triggered)
+bot.on("message", async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id.toString();
+
+  // Skip if it's a command or no pending message for this admin
+  if (!pendingMessages[userId] || msg.text.startsWith("/")) return;
+
+  const messageToSend = msg.text;
+
+  try {
+    const usersSnapshot = await admin.database().ref("users").once("value");
+    const users = usersSnapshot.val();
+
+    if (!users) {
+      bot.sendMessage(chatId, "🚫 No users found in the database.");
+      delete pendingMessages[userId];
+      return;
+    }
+
+    const userIds = Object.keys(users);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const uid of userIds) {
+      const user = users[uid];
+      if (user.telegram_id) {
+        try {
+          await bot.sendMessage(user.telegram_id, messageToSend);
+          successCount++;
+        } catch (err) {
+          console.error(
+            `❌ Failed to send to ${user.telegram_id}:`,
+            err.message
+          );
+          failCount++;
+        }
+      }
+    }
+
+    bot.sendMessage(
+      chatId,
+      `✅ Message sent to ${successCount} users.\n❌ Failed to send to ${failCount} users.`
+    );
+  } catch (error) {
+    console.error("🔥 Error sending messages:", error);
+    bot.sendMessage(chatId, "❌ An error occurred while sending messages.");
+  }
+
+  delete pendingMessages[userId]; // Reset state
+});
+
+//Done
 // Command to start announcement
 bot.onText(/\/send_announcement/, (msg) => {
   const chatId = msg.chat.id;
@@ -1201,6 +1325,78 @@ bot.on("message", async (msg) => {
   }
 });
 
+bot.onText(/\/upload_timetable$/, (msg) => {
+  const chatId = msg.chat.id;
+
+  bot.sendMessage(chatId, "Which timetable would you like to upload?", {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "📚 Academic Timetable", callback_data: "upload_academic" }],
+        [{ text: "🗓️ Semester Timetable", callback_data: "upload_semester" }],
+        [{ text: "📝 Exam Timetable", callback_data: "upload_exam" }],
+      ],
+    },
+  });
+});
+
+const awaitingUpload = {}; // Keeps track of who is uploading what
+
+bot.on("callback_query", async (query) => {
+  const chatId = query.message.chat.id;
+  const userId = query.from.id;
+
+  let type = "";
+
+  if (query.data.startsWith("upload_")) {
+    type = query.data.replace("upload_", ""); // "academic", "semester", "exam"
+    awaitingUpload[userId] = type;
+
+    bot.sendMessage(
+      chatId,
+      `Please upload the *${type}* timetable PDF or document.`,
+      {
+        parse_mode: "Markdown",
+      }
+    );
+  }
+});
+
+bot.on("document", async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+
+  if (!awaitingUpload[userId]) return;
+
+  const fileType = awaitingUpload[userId];
+  const fileId = msg.document.file_id;
+  const fileName = msg.document.file_name;
+
+  try {
+    const fileLink = await bot.getFileLink(fileId);
+
+    // Store to your database
+    const ref = admin.database().ref(`timetables/${fileType}`);
+    await ref.set({
+      name: fileName,
+      url: fileLink.href,
+      uploadedAt: Date.now(),
+    });
+
+    bot.sendMessage(
+      chatId,
+      `✅ *${fileType}* timetable uploaded successfully!`,
+      {
+        parse_mode: "Markdown",
+      }
+    );
+  } catch (err) {
+    console.error("Error saving file:", err);
+    bot.sendMessage(chatId, "❌ Failed to save the uploaded timetable.");
+  }
+
+  delete awaitingUpload[userId]; // Clear the state
+});
+
 //Not Done
 bot.onText(/\/add_user/, (msg) => {
   const opts = {
@@ -1246,6 +1442,43 @@ bot.onText(/\/find (\S+)/, async (msg, match) => {
   bot.sendMessage(chatId, info, { parse_mode: "Markdown" });
 });
 
+bot.onText(/\/users/, async (msg) => {
+  const chatId = msg.chat.id;
+
+  try {
+    const usersRef = admin.database().ref("users");
+    const snapshot = await usersRef.once("value");
+    const users = snapshot.val();
+
+    if (!users) {
+      return bot.sendMessage(chatId, "❌ No users found in the database.");
+    }
+
+    const userCount = Object.keys(users).length;
+
+    let levels = {};
+    Object.values(users).forEach((user) => {
+      const level = user.level || "Unknown";
+      levels[level] = (levels[level] || 0) + 1;
+    });
+
+    let message = `📊 *User Analytics*\n\n👥 *Total Users:* ${userCount}\n\n`;
+
+    message += `🎓 *Levels Breakdown:*\n`;
+    for (const level in levels) {
+      message += `- ${level}: ${levels[level]}\n`;
+    }
+
+    bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    bot.sendMessage(
+      chatId,
+      "❌ An error occurred while fetching user analytics."
+    );
+  }
+});
+
 bot.onText(/\/view_users/, async (msg) => {
   const chatId = msg.chat.id;
 
@@ -1288,13 +1521,11 @@ bot.onText(/\/view_users/, async (msg) => {
     for (const part of batch) {
       await sendAndStoreMessage(chatId, part, { parse_mode: "MarkdownV2" });
     }
-
   } catch (error) {
     console.error("Error fetching users:", error);
     bot.sendMessage(chatId, "❌ An error occurred while fetching users.");
   }
 });
-
 
 // Helper function to escape MarkdownV2
 function escapeMarkdown(text) {
@@ -1578,27 +1809,35 @@ cron.schedule("0 19 * * *", async () => {
   }
 });
 
+
 cron.schedule("0 1 * * *", async () => {
-  console.log("Running scheduled cleanup...");
+  console.log("🧹 Running scheduled cleanup...");
+
   const ref = admin.database().ref("botChats");
   const snapshot = await ref.once("value");
-  const now = Date.now();
-  const oneDay = 24 * 60 * 60 * 1000;
 
-  snapshot.forEach(async (child) => {
+  const deletions = [];
+
+  snapshot.forEach((child) => {
     const data = child.val();
-    if (now - data.timestamp > oneDay) {
+    const key = child.key;
+
+    const deleteTask = (async () => {
       try {
         await bot.deleteMessage(data.chat_id, data.message_id);
-        await ref.child(child.key).remove();
+        await ref.child(key).remove();
         console.log(
-          `Deleted message ${data.message_id} from chat ${data.chat_id}`
+          `✅ Deleted message ${data.message_id} from chat ${data.chat_id}`
         );
       } catch (err) {
-        console.error("Failed to delete message:", err);
+        console.error("❌ Failed to delete message:", err);
       }
-    }
+    })();
+
+    deletions.push(deleteTask);
   });
+
+  await Promise.all(deletions);
 });
 
 // --- Express Server Setup ---
