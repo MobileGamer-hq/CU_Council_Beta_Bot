@@ -1213,14 +1213,13 @@ bot.on("message", async (msg) => {
     let failCount = 0;
 
     for (const uid of userIds) {
-      const user = users[uid];
-      if (user.telegram_id) {
+      if (uid) {
         try {
-          await bot.sendMessage(user.telegram_id, messageToSend);
+          await bot.sendMessage(uid, messageToSend);
           successCount++;
         } catch (err) {
           console.error(
-            `❌ Failed to send to ${user.telegram_id}:`,
+            `❌ Failed to send to ${users[uid].first_name}:`,
             err.message
           );
           failCount++;
