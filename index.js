@@ -890,7 +890,7 @@ bot.onText(/\/timetable/, (msg) => {
 bot.onText(/\/handbook/, (msg) => {
   const chatId = msg.chat.id;
 
-  const filePath = path.join(__dirname, "documents", "handbook.pdf");
+  const filePath = path.join(__dirname, "files", "handbook.pdf");
 
   // Check if the file exists
   if (fs.existsSync(filePath)) {
@@ -981,7 +981,7 @@ bot.onText(/\/events/, async (msg) => {
       message = "📭 No events available for this week.";
     }
 
-    bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+    await sendAndStoreMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
     console.error("Error fetching events:", error);
     bot.sendMessage(chatId, "❌ Couldn't load events. Please try again.");
@@ -1005,15 +1005,27 @@ bot.onText(/\/announcements/, async (msg) => {
 
     if (announcements) {
       let announcementsText = "📢 *Latest Announcements:*\n\n";
+
       Object.keys(announcements)
         .reverse()
         .forEach((key) => {
           const announcement = announcements[key];
-          announcementsText += `📅 ${announcement.date || "No Date"}\n`;
+          
+          const date = new Date(announcement.timestamp);
+          const formattedDate = date.toLocaleString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+
+          announcementsText += `📅 *${formattedDate}*\n`;
+          announcementsText += `👤 From: *${announcement.from || "Admin"}*\n`;
           announcementsText += `${announcement.message || "No message"}\n\n`;
         });
 
-      bot.sendMessage(chatId, announcementsText, { parse_mode: "Markdown" });
+      await sendAndStoreMessage(chatId, announcementsText, { parse_mode: "Markdown" });
     } else {
       bot.sendMessage(chatId, "⚠️ No announcements found.");
     }
@@ -1025,6 +1037,7 @@ bot.onText(/\/announcements/, async (msg) => {
     );
   }
 });
+
 
 bot.onText(/\/more/, async (msg) => {
   const chatId = msg.chat.id;
