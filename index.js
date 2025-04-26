@@ -67,10 +67,10 @@ async function sendAndStoreMessage(chatId, text, options = {}) {
   }
 }
 
-bot.onText(/\/echo (.+)/, (msg, match) => {
+bot.onText(/\/echo (.+)/, async (msg, match) => {
   const chatId = msg.chat.id;
   const resp = match[1];
-  bot.sendMessage(chatId, resp);
+  await sendAndStoreMessage(chatId, resp);
 });
 
 //User Commands
