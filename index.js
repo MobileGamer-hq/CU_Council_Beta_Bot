@@ -328,7 +328,6 @@ bot.on("message", async (msg) => {
   }
 });
 
-
 bot.onText(/\/help/, async (msg) => {
   const chatId = msg.chat.id;
 
@@ -416,7 +415,10 @@ Student commands allow you to view and manage your personal information, events,
     }
   } catch (error) {
     console.error("Error fetching admin data:", error);
-    bot.sendMessage(chatId, "Sorry, there was an issue fetching the admin data.");
+    bot.sendMessage(
+      chatId,
+      "Sorry, there was an issue fetching the admin data."
+    );
   }
 });
 
@@ -1407,6 +1409,46 @@ bot.on("document", async (msg) => {
   delete awaitingUpload[userId]; // Clear the state
 });
 
+bot.onText(/\/clear_chats/, async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+
+  if (userId !== YOUR_ADMIN_ID) {
+    bot.sendMessage(chatId, "❌ You are not authorized to run this command.");
+    return;
+  }
+
+  console.log("🧹 Running scheduled cleanup...");
+
+  const ref = admin.database().ref("botChats");
+  const snapshot = await ref.once("value");
+
+  const deletions = [];
+
+  snapshot.forEach((child) => {
+    const data = child.val();
+    const key = child.key;
+
+    const deleteTask = (async () => {
+      try {
+        await bot.deleteMessage(data.chat_id, data.message_id);
+        await ref.child(key).remove();
+        console.log(
+          `✅ Deleted message ${data.message_id} from chat ${data.chat_id}`
+        );
+      } catch (err) {
+        console.error("❌ Failed to delete message:", err);
+      }
+    })();
+
+    deletions.push(deleteTask);
+  });
+
+  await Promise.all(deletions);
+
+  bot.sendMessage(chatId, "✅ Finished cleaning up!");
+});
+
 //Not Done
 bot.onText(/\/add_user/, (msg) => {
   const opts = {
@@ -1786,11 +1828,9 @@ async function getUsersFromFirebase() {
   return usersSnapshot.val(); // Return users object
 }
 
-
 cron.schedule("* * * * *", () => {
   console.log("🕐 Cron heartbeat: ", new Date().toString());
 });
-
 
 // Send random morning message at 8 AM
 cron.schedule("0 7 * * *", async () => {
