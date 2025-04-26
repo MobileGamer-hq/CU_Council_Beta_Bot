@@ -1462,6 +1462,38 @@ bot.onText(/\/clear_chats/, async (msg) => {
   bot.sendMessage(chatId, "✅ Finished cleaning up!");
 });
 
+//
+bot.onText(/\/remove_user (.+)/, async (msg, match) => {
+  const chatId = msg.chat.id;
+  const matricNumber = match[1].trim();
+
+  if (!matricNumber) {
+    return bot.sendMessage(chatId, "⚠️ Please provide a matric number. Usage: `/removeuser MATRIC_NUMBER`", { parse_mode: "Markdown" });
+  }
+
+  try {
+    const db = admin.database();
+    const usersRef = db.ref('users');
+
+    const snapshot = await usersRef.orderByChild('matricNumber').equalTo(matricNumber).once('value');
+    const users = snapshot.val();
+
+    if (users) {
+      const userId = Object.keys(users)[0]; // Since only one user has it
+      await usersRef.child(userId).remove();
+
+      bot.sendMessage(chatId, `✅ Successfully removed user with matric number *${matricNumber}*.`, { parse_mode: "Markdown" });
+      console.log(`🗑️ Removed user ${userId} with matric number ${matricNumber}`);
+    } else {
+      bot.sendMessage(chatId, `⚠️ No user found with matric number *${matricNumber}*.`, { parse_mode: "Markdown" });
+    }
+  } catch (error) {
+    console.error('❌ Error removing user:', error);
+    bot.sendMessage(chatId, "❌ An error occurred while trying to remove the user.");
+  }
+});
+
+
 //Not Done
 bot.onText(/\/add_user/, (msg) => {
   const opts = {
