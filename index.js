@@ -1413,7 +1413,7 @@ bot.onText(/\/clear_chats/, async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
 
-  if (userId !== YOUR_ADMIN_ID) {
+  if (userId !== 6311922657) {
     bot.sendMessage(chatId, "❌ You are not authorized to run this command.");
     return;
   }
