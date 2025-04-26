@@ -341,37 +341,39 @@ bot.onText(/\/help/, async (msg) => {
       const adminHelp = `
 👋 *Welcome, Admin!*
 
-🔧 *Admin Commands:*
+*🔧 Admin Commands:*
 
 📊 *User Management*  
-- /users – View total number of users  
-- /view_users – View all registered users  
-- /find – Find a user by their Matric number  
+/users – View total number of users  
+/view_users – View all registered users  
+/find – Find a user by their Matric number  
 
 📢 *Messaging*  
-- /send_message – Send a message to all users  
-- /send_announcement – Broadcast an announcement  
+/send_message – Send a message to all users  
+/send_announcement – Broadcast an announcement  
 
 📅 *Events & Scheduling*  
-- /add_event – Add a new event to the calendar  
-- /view_events – List all upcoming events  
-- /upload_timetable – Upload class timetable  
+/add_event – Add a new event to the calendar  
+/view_events – List all upcoming events  
+/upload_timetable – Upload class timetable  
 
 📂 *General Data*  
-- /upload – Upload a document or resource  
-- /add – Add general data  
-- /update – Update general data  
-- /update_contact – Update a single contact  
-- /update_contacts – Update all contacts  
+/upload – Upload a document or resource  
+/add – Add general data  
+/update – Update general data  
+/update_contact – Update a single contact  
+/update_contacts – Update all contacts  
 
 📚 *FAQ Management*  
-- /add_faq – Add a new FAQ entry  
+/add_faq – Add a new FAQ entry  
 
 — *Admin Commands Overview*  
 Admin commands let you manage users, events, broadcasts, FAQs, and more.
 `;
 
-      bot.sendMessage(chatId, adminHelp, { parse_mode: "Markdown" });
+      bot.sendMessage(chatId, escapeMarkdown(adminHelp), {
+        parse_mode: "MarkdownV2",
+      });
     } else {
       const studentHelp = `
 👋 *Welcome to the Covenant University Student Council Bot!*
@@ -379,35 +381,37 @@ Admin commands let you manage users, events, broadcasts, FAQs, and more.
 *Here are the commands you can use:*
 
 📚 *Personal Info*  
-- /start – Register or initialize your session  
-- /help – View available commands and features  
-- /view_info – Check your registered information  
-- /update_info – Update your profile information  
+/start – Register or initialize your session  
+/help – View available commands and features  
+/view_info – Check your registered information  
+/update_info – Update your profile information  
 
 ✉️ *Contact*  
-- /contact – Send a message to the Student Council (you can stay anonymous)  
-- /contacts – Get contact details for school offices  
+/contact – Send a message to the Student Council (you can stay anonymous)  
+/contacts – Get contact details for school offices  
 
 📅 *Events*  
-- /events – See upcoming CU events  
-- /announcements – View the latest updates from the Student Council  
-- /timetable – View your timetable for the semester  
-- /semester_events – View events for the current semester  
-- /monthly_events – View events for the current month  
+/events – See upcoming CU events  
+/announcements – View the latest updates from the Student Council  
+/timetable – View your timetable for the semester  
+/semester_events – View events for the current semester  
+/monthly_events – View events for the current month  
 
 💡 *Suggestions & Feedback*  
-- /suggest – Send a suggestion or idea to the council  
-- /faq – Get answers to common questions  
+/suggest – Send a suggestion or idea to the council  
+/faq – Get answers to common questions  
 
 🔍 *Lost and Found*  
-- /submit_lost_and_found – Submit a lost or found item (send a picture and description)  
-- /lost_and_found – View lost and found items with pictures and descriptions  
+/submit_lost_and_found – Submit a lost or found item (send a picture and description)  
+/lost_and_found – View lost and found items with pictures and descriptions  
 
 — *Student Commands Overview*  
 Student commands allow you to view and manage your personal information, events, suggestions, and more.
 `;
 
-      bot.sendMessage(chatId, studentHelp, { parse_mode: "Markdown" });
+      bot.sendMessage(chatId, escapeMarkdown(studentHelp), {
+        parse_mode: "MarkdownV2",
+      });
     }
   } catch (error) {
     console.error("Error fetching admin data:", error);
