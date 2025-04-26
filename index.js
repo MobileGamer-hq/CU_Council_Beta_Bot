@@ -422,6 +422,42 @@ Student commands allow you to view and manage your personal information, events,
   }
 });
 
+bot.onText(/\/about/, (msg) => {
+  const chatId = msg.chat.id;
+
+  const aboutMessage = `
+👋 *Welcome to CU Dispatch!*
+
+Hey there! I'm *Somtochukwu Philip Duru*, the creator of CU Dispatch.  
+I built this platform to make it easier for you to stay updated, access important announcements, view events, share feedback, and stay connected with the CU community — all in one place.
+
+✨ *What you can do with CU Dispatch:*
+
+📢 Receive the latest announcements  
+🗓 See upcoming events and schedules  
+🗳 Participate in polls and share feedback  
+💬 Suggest ideas and improvements  
+📚 Get answers to common questions (FAQ)
+
+🙋‍♂️ *About Me:*  
+I'm passionate about technology, community building, and making communication smoother through innovation.  
+CU Dispatch was created to serve YOU — making information faster, easier, and always within reach.
+
+🔗 *Stay Connected with me:*
+
+Instagram: [@somto2007](https://www.instagram.com/somto2007/)  
+GitHub: [MobileGamer-hq](https://github.com/MobileGamer-hq)  
+LinkedIn: [Somtochukwu Duru](https://www.linkedin.com/in/somtochukwu-duru-919362253/)  
+Website: [somto.web.app](https://somto.web.app/)
+
+Thanks for using CU Dispatch! 🚀  
+If you ever have questions, suggestions, or just want to say hi, feel free to reach out!  
+Let's make CU better together.
+`;
+
+  bot.sendMessage(chatId, aboutMessage, { parse_mode: "Markdown" });
+});
+
 const contactSessions = {}; // temp in-memory store for contact flow
 
 //Done
@@ -1010,14 +1046,14 @@ bot.onText(/\/announcements/, async (msg) => {
         .reverse()
         .forEach((key) => {
           const announcement = announcements[key];
-          
+
           const date = new Date(announcement.timestamp);
-          const formattedDate = date.toLocaleString('en-GB', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+          const formattedDate = date.toLocaleString("en-GB", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
           });
 
           announcementsText += `📅 *${formattedDate}*\n`;
@@ -1025,7 +1061,9 @@ bot.onText(/\/announcements/, async (msg) => {
           announcementsText += `${announcement.message || "No message"}\n\n`;
         });
 
-      await sendAndStoreMessage(chatId, announcementsText, { parse_mode: "Markdown" });
+      await sendAndStoreMessage(chatId, announcementsText, {
+        parse_mode: "Markdown",
+      });
     } else {
       bot.sendMessage(chatId, "⚠️ No announcements found.");
     }
@@ -1037,7 +1075,6 @@ bot.onText(/\/announcements/, async (msg) => {
     );
   }
 });
-
 
 bot.onText(/\/more/, async (msg) => {
   const chatId = msg.chat.id;
@@ -1468,31 +1505,50 @@ bot.onText(/\/remove_user (.+)/, async (msg, match) => {
   const matricNumber = match[1].trim();
 
   if (!matricNumber) {
-    return bot.sendMessage(chatId, "⚠️ Please provide a matric number. Usage: `/removeuser MATRIC_NUMBER`", { parse_mode: "Markdown" });
+    return bot.sendMessage(
+      chatId,
+      "⚠️ Please provide a matric number. Usage: `/removeuser MATRIC_NUMBER`",
+      { parse_mode: "Markdown" }
+    );
   }
 
   try {
     const db = admin.database();
-    const usersRef = db.ref('users');
+    const usersRef = db.ref("users");
 
-    const snapshot = await usersRef.orderByChild('matricNumber').equalTo(matricNumber).once('value');
+    const snapshot = await usersRef
+      .orderByChild("matricNumber")
+      .equalTo(matricNumber)
+      .once("value");
     const users = snapshot.val();
 
     if (users) {
       const userId = Object.keys(users)[0]; // Since only one user has it
       await usersRef.child(userId).remove();
 
-      bot.sendMessage(chatId, `✅ Successfully removed user with matric number *${matricNumber}*.`, { parse_mode: "Markdown" });
-      console.log(`🗑️ Removed user ${userId} with matric number ${matricNumber}`);
+      bot.sendMessage(
+        chatId,
+        `✅ Successfully removed user with matric number *${matricNumber}*.`,
+        { parse_mode: "Markdown" }
+      );
+      console.log(
+        `🗑️ Removed user ${userId} with matric number ${matricNumber}`
+      );
     } else {
-      bot.sendMessage(chatId, `⚠️ No user found with matric number *${matricNumber}*.`, { parse_mode: "Markdown" });
+      bot.sendMessage(
+        chatId,
+        `⚠️ No user found with matric number *${matricNumber}*.`,
+        { parse_mode: "Markdown" }
+      );
     }
   } catch (error) {
-    console.error('❌ Error removing user:', error);
-    bot.sendMessage(chatId, "❌ An error occurred while trying to remove the user.");
+    console.error("❌ Error removing user:", error);
+    bot.sendMessage(
+      chatId,
+      "❌ An error occurred while trying to remove the user."
+    );
   }
 });
-
 
 //Not Done
 bot.onText(/\/add_user/, (msg) => {
@@ -1873,9 +1929,9 @@ async function getUsersFromFirebase() {
   return usersSnapshot.val(); // Return users object
 }
 
-cron.schedule("* * * * *", () => {
-  console.log("🕐 Cron heartbeat: ", new Date().toString());
-});
+// cron.schedule("* * * * *", () => {
+//   console.log("🕐 Cron heartbeat: ", new Date().toString());
+// });
 
 // Send random morning message at 8 AM
 cron.schedule("0 7 * * *", async () => {
