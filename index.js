@@ -852,6 +852,18 @@ function getMonthlyEvents(events) {
   });
 }
 
+// Function to filter events for the current week
+function getWeeklyEvents(events) {
+  const startOfWeek = moment().startOf("week"); // Sunday
+  const endOfWeek = moment().endOf("week");     // Saturday
+
+  return events.filter((event) => {
+    const eventDate = moment(event["Date"], "Do MMMM, YYYY");
+    return eventDate.isBetween(startOfWeek, endOfWeek, undefined, "[]"); // inclusive
+  });
+}
+
+
 // Function to format individual event details
 function formatSingleEvent(event) {
   return `
@@ -862,6 +874,38 @@ function formatSingleEvent(event) {
     🏷 *Event Type*: ${event["Event Type"]}
   `;
 }
+
+// Respond to /weekly_events command
+bot.onText(/\/weekly_events/, async (msg) => {
+  const chatId = msg.chat.id;
+
+  if (events.length === 0) {
+    bot.sendMessage(
+      chatId,
+      "⚠️ Events are still loading. Please try again in a few seconds."
+    );
+    return;
+  }
+
+  const weeklyEvents = getWeeklyEvents(events);
+
+  if (weeklyEvents.length === 0) {
+    bot.sendMessage(chatId, "⚠️ No events found for this week.");
+    return;
+  }
+
+  await sendAndStoreMessage(
+    chatId,
+    "🗓 Here are the events for this week:",
+    { parse_mode: "Markdown" }
+  );
+
+  for (const event of weeklyEvents) {
+    const message = formatSingleEvent(event);
+    await sendAndStoreMessage(chatId, message, { parse_mode: "Markdown" });
+  }
+});
+
 
 // Respond to /monthly_events command
 bot.onText(/\/monthly_events/, async (msg) => {
@@ -893,7 +937,7 @@ bot.onText(/\/monthly_events/, async (msg) => {
   // Send each event one by one
   for (const event of monthlyEvents) {
     const message = formatSingleEvent(event);
-    await bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+    await sendAndStoreMessage(chatId, message, { parse_mode: "Markdown" });
   }
 });
 
@@ -976,7 +1020,7 @@ bot.onText(/\/view_events/, async (msg) => {
       message = "📭 No events available for this week.";
     }
 
-    bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+    await sendAndStoreMessage(chatId, message, { parse_mode: "Markdown" });
   } catch (error) {
     console.error("Error fetching events:", error);
     bot.sendMessage(chatId, "❌ Couldn't load events. Please try again.");
@@ -985,44 +1029,29 @@ bot.onText(/\/view_events/, async (msg) => {
 
 bot.onText(/\/events/, async (msg) => {
   const chatId = msg.chat.id;
-  const db = admin.database();
 
-  try {
-    const snapshot = await db.ref("events").once("value");
-    const events = snapshot.val();
+  if (!events || events.length === 0) {
+    return bot.sendMessage(chatId, "📭 No events available at the moment.");
+  }
 
-    if (!events) {
-      return bot.sendMessage(chatId, "📭 No events available at the moment.");
-    }
+  // Sort events by date
+  const sortedEvents = events.sort((a, b) => {
+    return new Date(a.Date) - new Date(b.Date);
+  });
 
-    // Get current date and calculate the start and end of the week (Monday to Sunday)
-    const now = new Date();
-    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 1)); // Monday
-    const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 7)); // Sunday
+  await sendAndStoreMessage(chatId, "📅 *All Upcoming Events:*\n", {
+    parse_mode: "Markdown",
+  });
 
-    let message = "📅 *Upcoming Events This Week:*\n\n";
-    let eventCount = 0;
-
-    Object.values(events).forEach((event, index) => {
-      const eventDate = new Date(event.date);
-
-      // Check if the event is within the current week
-      if (eventDate >= startOfWeek && eventDate <= endOfWeek) {
-        eventCount++;
-        message += `*${eventCount}. ${event.title}*\n📖 ${event.description}\n🗓 Date: ${event.date}\n\n`;
-      }
-    });
-
-    if (eventCount === 0) {
-      message = "📭 No events available for this week.";
-    }
+  // Send each event one by one
+  for (let i = 0; i < sortedEvents.length; i++) {
+    const event = sortedEvents[i];
+    const message = `*${i + 1}. ${event.Title}*\n📖 ${event.Description}\n🗓 Date: ${event.Date}\n\n`;
 
     await sendAndStoreMessage(chatId, message, { parse_mode: "Markdown" });
-  } catch (error) {
-    console.error("Error fetching events:", error);
-    bot.sendMessage(chatId, "❌ Couldn't load events. Please try again.");
   }
 });
+
 
 //Done
 const userAnnouncementStates = {};
