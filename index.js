@@ -1214,6 +1214,58 @@ bot.on("message", async (msg) => {
   }
 });
 
+
+bot.onText(/\/send_file/, (msg) => {
+  const chatId = msg.chat.id;
+
+  // Check if admin
+  admin.database().ref("admins").once("value", (snapshot) => {
+    const adminList = snapshot.val() || {};
+    if (!adminList[chatId]) {
+      return bot.sendMessage(chatId, "❌ You are not authorized to use this command.");
+    }
+
+    bot.sendMessage(chatId, "📎 Please upload the file you want to send to all users.");
+    adminStates[chatId] = "awaiting_file";
+  });
+});
+
+bot.on("document", async (msg) => {
+  const chatId = msg.chat.id;
+  const state = adminStates[chatId];
+
+  if (state !== "awaiting_file") return;
+
+  const fileId = msg.document.file_id;
+  const caption = msg.caption || "📎 New file from CU Dispatch";
+
+  // Fetch all users
+  const usersSnapshot = await admin.database().ref("users").once("value");
+  const users = usersSnapshot.val();
+
+  if (!users) {
+    return bot.sendMessage(chatId, "❌ No registered users found.");
+  }
+
+  const userIds = Object.keys(users);
+
+  bot.sendMessage(chatId, `📤 Sending file to ${userIds.length} users...`);
+
+  for (const userId of userIds) {
+    try {
+      await bot.sendDocument(userId, fileId, {
+        caption: caption,
+      });
+    } catch (err) {
+      console.error(`Failed to send file to ${userId}:`, err.message);
+    }
+  }
+
+  bot.sendMessage(chatId, "✅ File has been sent to all users.");
+  delete adminStates[chatId];
+});
+
+
 const pendingMessages = {}; // Stores temporary message state for admins
 
 bot.onText(/\/send_message/, async (msg) => {
