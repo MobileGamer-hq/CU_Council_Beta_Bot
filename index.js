@@ -1183,7 +1183,7 @@ bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
 
   // Skip if this message is a command
-  // if (msg.text.startsWith("/")) return;
+  if (msg.text && msg.text.startsWith("/")) return;
 
   const state = adminStates[chatId];
 
@@ -1214,20 +1214,28 @@ bot.on("message", async (msg) => {
   }
 });
 
-
 bot.onText(/\/send_file/, (msg) => {
   const chatId = msg.chat.id;
 
   // Check if admin
-  admin.database().ref("admins").once("value", (snapshot) => {
-    const adminList = snapshot.val() || {};
-    if (!adminList[chatId]) {
-      return bot.sendMessage(chatId, "❌ You are not authorized to use this command.");
-    }
+  admin
+    .database()
+    .ref("admins")
+    .once("value", (snapshot) => {
+      const adminList = snapshot.val() || {};
+      if (!adminList[chatId]) {
+        return bot.sendMessage(
+          chatId,
+          "❌ You are not authorized to use this command."
+        );
+      }
 
-    bot.sendMessage(chatId, "📎 Please upload the file you want to send to all users.");
-    adminStates[chatId] = "awaiting_file";
-  });
+      bot.sendMessage(
+        chatId,
+        "📎 Please upload the file you want to send to all users."
+      );
+      adminStates[chatId] = "awaiting_file";
+    });
 });
 
 bot.on("document", async (msg) => {
@@ -1265,7 +1273,6 @@ bot.on("document", async (msg) => {
   delete adminStates[chatId];
 });
 
-
 const pendingMessages = {}; // Stores temporary message state for admins
 
 bot.onText(/\/send_message/, async (msg) => {
@@ -1298,7 +1305,7 @@ bot.on("message", async (msg) => {
   const userId = msg.from.id.toString();
 
   // Skip if it's a command or no pending message for this admin
-  if (!pendingMessages[userId] || msg.text.startsWith("/")) return;
+  if (msg.text && (!pendingMessages[userId] || msg.text.startsWith("/"))) return;
 
   const messageToSend = msg.text;
 
@@ -1362,7 +1369,7 @@ bot.on("message", async (msg) => {
   const text = msg.text;
 
   // Avoid processing the command itself again
-  if (text.toLowerCase().startsWith("/send_announcement")) return;
+  if (text && text.toLowerCase().startsWith("/send_announcement")) return;
 
   if (adminStates[chatId] === "awaiting_announcement") {
     const db = admin.database();
@@ -1898,15 +1905,19 @@ bot.on("message", async (msg) => {
   const messageId = msg.message_id;
   const text = msg.text;
 
-  // Skip if it's a command
-  if (!text || text.startsWith("/")) return;
+  try {
+    // Skip if it's a command
+    if (!text || text.startsWith("/")) return;
 
-  // Set timeout to delete message after 5 minutes (300,000 ms)
-  setTimeout(() => {
-    bot.deleteMessage(chatId, messageId).catch((err) => {
-      console.error("❌ Error deleting message:", err.message);
-    });
-  }, 300000); // 5 minutes in milliseconds
+    // Set timeout to delete message after 5 minutes (300,000 ms)
+    setTimeout(() => {
+      bot.deleteMessage(chatId, messageId).catch((err) => {
+        console.error("❌ Error deleting message:", err.message);
+      });
+    }, 300000); // 5 minutes in milliseconds
+  } catch (error) {
+    console.log("Error deleting message:", error.message);
+  }
 });
 
 //Callback Query
