@@ -1183,7 +1183,7 @@ bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
 
   // Skip if this message is a command
-  if (msg.text.startsWith("/")) return;
+  // if (msg.text.startsWith("/")) return;
 
   const state = adminStates[chatId];
 
