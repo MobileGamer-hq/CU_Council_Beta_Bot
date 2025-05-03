@@ -2021,9 +2021,9 @@ async function getUsersFromFirebase() {
   return usersSnapshot.val(); // Return users object
 }
 
-// cron.schedule("* * * * *", () => {
-//   console.log("🕐 Cron heartbeat: ", new Date().toString());
-// });
+cron.schedule("* * * * *", () => {
+  console.log("🕐 Cron heartbeat: ", new Date().toString());
+});
 
 // Send random morning message at 8 AM
 cron.schedule("0 7 * * *", async () => {
