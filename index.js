@@ -855,14 +855,13 @@ function getMonthlyEvents(events) {
 // Function to filter events for the current week
 function getWeeklyEvents(events) {
   const startOfWeek = moment().startOf("week"); // Sunday
-  const endOfWeek = moment().endOf("week");     // Saturday
+  const endOfWeek = moment().endOf("week"); // Saturday
 
   return events.filter((event) => {
     const eventDate = moment(event["Date"], "Do MMMM, YYYY");
     return eventDate.isBetween(startOfWeek, endOfWeek, undefined, "[]"); // inclusive
   });
 }
-
 
 // Function to format individual event details
 function formatSingleEvent(event) {
@@ -894,18 +893,15 @@ bot.onText(/\/weekly_events/, async (msg) => {
     return;
   }
 
-  await sendAndStoreMessage(
-    chatId,
-    "🗓 Here are the events for this week:",
-    { parse_mode: "Markdown" }
-  );
+  await sendAndStoreMessage(chatId, "🗓 Here are the events for this week:", {
+    parse_mode: "Markdown",
+  });
 
   for (const event of weeklyEvents) {
     const message = formatSingleEvent(event);
     await sendAndStoreMessage(chatId, message, { parse_mode: "Markdown" });
   }
 });
-
 
 // Respond to /monthly_events command
 bot.onText(/\/monthly_events/, async (msg) => {
@@ -1046,12 +1042,13 @@ bot.onText(/\/events/, async (msg) => {
   // Send each event one by one
   for (let i = 0; i < sortedEvents.length; i++) {
     const event = sortedEvents[i];
-    const message = `*${i + 1}. ${event.Title}*\n📖 ${event.Description}\n🗓 Date: ${event.Date}\n\n`;
+    const message = `*${i + 1}. ${event.Title}*\n📖 ${
+      event.Description
+    }\n🗓 Date: ${event.Date}\n\n`;
 
     await sendAndStoreMessage(chatId, message, { parse_mode: "Markdown" });
   }
 });
-
 
 //Done
 const userAnnouncementStates = {};
@@ -1322,7 +1319,7 @@ bot.onText(/\/send_message/, async (msg) => {
   }
 
   pendingMessages[userId] = true;
-  bot.sendMessage(
+  await sendAndStoreMessage(
     chatId,
     "📝 Please type the message you want to send to all users:"
   );
@@ -1334,7 +1331,8 @@ bot.on("message", async (msg) => {
   const userId = msg.from.id.toString();
 
   // Skip if it's a command or no pending message for this admin
-  if (msg.text && (!pendingMessages[userId] || msg.text.startsWith("/"))) return;
+  if (msg.text && (!pendingMessages[userId] || msg.text.startsWith("/")))
+    return;
 
   const messageToSend = msg.text;
 
@@ -1384,7 +1382,7 @@ bot.on("message", async (msg) => {
 bot.onText(/\/send_announcement/, (msg) => {
   const chatId = msg.chat.id;
 
-  bot.sendMessage(
+  sendAndStoreMessage(
     chatId,
     "📢 Please type the announcement message you'd like to send to all users:"
   );

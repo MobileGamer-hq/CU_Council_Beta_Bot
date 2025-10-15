@@ -26,6 +26,24 @@ async function getUser(userId) {
   return snapshot.val();
 }
 
+// Get all users
+async function getAllUsers() {
+  const snapshot = await db.ref(USERS_PATH).once('value');
+  return snapshot.exists() ? snapshot.val() : {}; // Return all users
+}
+
+// Delete a user
+async function deleteUser(userId) {
+  const userRef = db.ref(`${USERS_PATH}/${userId}`);
+  try {
+    await userRef.remove();
+    console.log('User deleted successfully.');
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    throw error;
+  }
+}
+
 
 const addUser = async (userId, userInfo = {}) => {
     try {
@@ -47,9 +65,9 @@ const addMultipleUsers = async (users = []) => {
   const results = [];
 
   for (const user of users) {
-    const { id, ...info } = user;
-    const success = await addUser(id, info);
-    results.push({ id, success });
+    const { userId, ...info } = user;
+    const success = await addUser(userId, info);
+    results.push({ userId, success });
   }
 
   return results;
@@ -103,13 +121,77 @@ async function addAdminByMatricNumber(matricNumber) {
   }
 }
 
+//Admin functions
+async function addAdmin(userId) {
+  const adminRef = db.ref(`admins/${userId}`);
+  try {
+    await adminRef.set(true);
+    console.log('Admin added successfully.');
+  } catch (error) {
+    console.error('Error adding admin:', error);
+    throw error;
+  }
+}
+
+async function getAllAdmins() {
+  const snapshot = await db.ref('admins').once('value');
+
+  return snapshot.exists() ? snapshot.val() : {}; // Return all admins
+
+}
+
+async function adminCheck(userId) {
+  const adminRef = db.ref(`admins/${userId}`);
+  const snapshot = await adminRef.once('value');
+  return snapshot.exists(); // Return true if the admin exists
+}
+
+async function removeAdmin(userId) {
+  const adminRef = db.ref(`admins/${userId}`);
+  try {
+    await adminRef.remove();
+    console.log('Admin removed successfully.');
+  } catch (error) {
+    console.error('Error removing admin:', error);
+    throw error;
+  }
+}
+
+
+async function sendToAllAdmins(message, chatId, bot) {
+  const adminRef =   db.ref('admins');
+  const snapshot = await adminRef.once('value');
+  const admins = snapshot.exists() ? snapshot.val() : {}; // Return all admins
+  if (!admins || admins.length === 0) {
+    console.log('No admin to send to.');
+    return;
+  }
+
+  // Send message to all admins
+  for (let admin of Object.keys(admins)) {
+    try {
+      await bot.sendMessage(admin, message);
+    } catch (error) {
+      console.error(`Error sending to admin ${admin.userId}:`, error);
+    }
+  }
+
+  // Acknowledge the sender of the command
+  bot.sendMessage(chatId, 'Sent to all admins!');
+}
+
 
 module.exports = {
   getUserIds, // Export the function to get user IDs
   getUser, // Export the function to get a user by ID
   addUser, // Export the function to add a user
   addMultipleUsers, // Export the function to add multiple users
+  getAllUsers,
+
+
   isUserAdmin, // Export the function to check if a user is an admin
+  getAllAdmins,
+  sendToAllAdmins,
   getUserByMatricNumber, // Export the function to get a user by matric number
   addAdminByMatricNumber // Export the function to add an admin by matric number
 };
